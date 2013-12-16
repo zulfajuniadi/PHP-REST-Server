@@ -1,6 +1,12 @@
 PHP REST Server
 ===============
 
+##Features
+
+1. Automatically generated resources (tables) based on incomming data.
+1. Routes are automatically generated from the database. Apart from the initial setup, you won't need to modify the code.
+1. Supports multiple databases MySQL 5+ SQLite 3.6.19+ PostgreSQL 8+ CUBRUD.
+
 ##Installation
 
 1. Install [Composer](http://getcomposer.org/doc/00-intro.md#installation-nix).
@@ -26,3 +32,9 @@ PHP REST Server
 ##Examples
 
 View the ``templates/_manage.html`` and ``js/manage.js`` to view API usage with ``Backbone.js``
+
+##Todos
+
+1. Query route (wheres, limits, orders)
+1. Auto sync (Client data to be persistant on client side, can sync automatically from the server when there are new data)
+1. ACL

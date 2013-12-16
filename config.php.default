@@ -1,7 +1,53 @@
 <?php
+
+	/* debugging */
+
+	$config['debug'] = false;
+
+	/* sessions config */
+
 	$config['session_expiry'] = 60 * 60 * 4; // 4 hours
-	//http://www.php.net/manual/en/timezones.php
-	$config['timezone'] = 'UTC';
+
+	/* /manage username and password */
+
 	$config['username'] = 'admin';
 	$config['password'] = 'admin';
-	$config['debug'] = false;
+
+	/* Timezone */
+	//http://www.php.net/manual/en/timezones.php
+
+	$config['timezone'] = 'UTC';
+	date_default_timezone_set($config['timezone']);
+
+	/* Database */
+
+	// Uncomment which database you'd like to use.
+
+	// http://www.php.net/manual/en/pdo.connections.php
+
+	/* SQLite */
+
+	$config['DBConn'] = 'sqlite:db/database.sqlite3';
+	$config['DBUser'] = null;
+	$config['DBPass'] = null;
+
+	/* MySQL */
+
+	// $config['DBConn'] = 'mysql:host=localhost;dbname=APIServer';
+	// $config['DBUser'] = 'root';
+	// $config['DBPass'] = null;
+
+	/* PostgreSQL */
+
+	// $config['DBConn'] = 'pgsql:host=localhost;dbname=APIServer';
+	// $config['DBUser'] = 'root';
+	// $config['DBPass'] = null;
+
+	/* CUBRID */
+
+	// $config['DBConn'] = 'cubrid:host=localhost;port=30000;dbname=APIServer';
+	// $config['DBUser'] = 'root';
+	// $config['DBPass'] = null;
+
+
+

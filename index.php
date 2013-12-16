@@ -24,14 +24,10 @@ require_once('utils.php');
 if($config['password'] === 'admin')
 	die('Change the password in config.php');
 
-/* set timezone */
-
-date_default_timezone_set($config['timezone']);
-
 /* setup database */
 
 use RedBean_Facade as R;
-R::setup('sqlite:db/database.sqlite3');
+R::setup($config['DBConn'], $config['DBUser'], $config['DBPass']);
 
 /* app start */
 
