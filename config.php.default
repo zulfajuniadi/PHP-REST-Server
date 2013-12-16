@@ -54,7 +54,7 @@
 	// 0 to disable
 	$config['default_sql_limit'] = array(0,25);
 
-	/* Rate Limiting / Package / minute */
+	/* Rate Limiting / Package / hour */
 	// not implemented yet
 	// 0 = disable
 

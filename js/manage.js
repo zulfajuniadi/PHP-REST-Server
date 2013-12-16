@@ -5,7 +5,7 @@
 			return options.fn();
 		}
 		return options.inverse();
-	})
+	});
 
 	var packageModel = Backbone.Model.extend({
 		parse : function(response) {
@@ -48,6 +48,8 @@
 					editId = id;
 					var model = this.collection.get(id);
 					$('#name').val(model.attributes.name);
+					$('#api').val(model.attributes.api);
+					$('#rate').val(model.attributes.rate);
 					if(model.attributes.enabled === 'true') {
 						$("#enabled").prop( "checked", true );
 					} else {
@@ -98,6 +100,20 @@
 		el : $('#tbody')[0]
 	});
 
+	$('#genApiKey').click(function() {
+	    var text = "";
+	    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	    for( var i=0; i < 24; i++ )
+	        text += possible.charAt(Math.floor(Math.random() * possible.length));
+		if($('#api').val() !== '' && editId) {
+			if (confirm('Are you sure you want to change the API Key?'))
+				return $('#api').val(text);
+			else
+				return;
+		}
+		return $('#api').val(text);
+	});
+
 	$('#form').on('submit', function(){
 		var enabled = 'false';
 		var list = 'false';
@@ -115,24 +131,20 @@
 			update = 'true';
 		if($('#remove').is(':checked'))
 			remove = 'true';
+		var data = {
+			name : name,
+			enabled : enabled,
+			list : list,
+			insert : insert,
+			update : update,
+			remove : remove,
+			api : $('#api').val() || null,
+			rate : parseInt($('#rate').val(), 10) || 0,
+		};
 		if(editId) {
-			packages.get(editId).save({
-				name : name,
-				enabled : enabled,
-				list : list,
-				insert : insert,
-				update : update,
-				remove : remove
-			});
+			packages.get(editId).save(data);
 		} else {
-			packages.create({
-				name : name,
-				enabled : enabled,
-				list : list,
-				insert : insert,
-				update : update,
-				remove : remove
-			});
+			packages.create(data);
 		}
 		editId = false;
 		this.reset();

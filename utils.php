@@ -25,6 +25,36 @@ class Util
 		return $package . $name;
 	}
 
+	public function checkTokenHeader($package, $token) {
+		if(is_null($token))
+			$package = R::findOne('managepackages', ' name = ? and api is null', array($this->cleanup($package)));
+		else
+			$package = R::findOne('managepackages', ' name = ? and api = ?', array($this->cleanup($package), $token));
+		if($package) {
+			return true;
+		}
+		return false;
+	}
+
+	public function checkLimit($package) {
+		$thisHour = floor(time() / 60 / 60);
+		session_start();
+		if(isset($_SESSION['requestHour']) && $_SESSION['requestHour'] == $thisHour) {
+			$_SESSION['requestCount'] ++;
+		} else {
+			$_SESSION['requestHour'] = $thisHour;
+			$_SESSION['requestCount'] = 1;
+		}
+		session_write_close();
+		$package = R::findOne('managepackages', ' name = ?', array($this->cleanup($package)));
+		$this->app->response()->header('Api-Utilization', $_SESSION['requestCount']);
+		$this->app->response()->header('Api-Limit', $package->rate);
+		if($package->rate >= $_SESSION['requestCount']) {
+			return true;
+		}
+		return false;
+	}
+
 	public function respond($code, $msg = array(), $error = FALSE) {
 		$this->app->render($code ,array(
 			'error' => $error,

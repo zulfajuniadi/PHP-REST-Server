@@ -2,6 +2,8 @@
 
 /* Start Sessions */
 
+session_save_path('caches');
+ini_set('session.gc_probability', 1);
 session_cache_limiter(false);
 session_start();
 session_write_close();
@@ -19,10 +21,10 @@ if(!file_exists('vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))
 	die('Run composer update first. View https://github.com/zulfajuniadi/PHP-REST-Server for more info');
 require_once('vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
-
-
 if(!file_exists('config.php'))
 	die('config.php not found. Have you renamed the config.php.default to config.php?');
+
+/* Require Config File */
 
 $config = array();
 require_once('config.php');
@@ -54,6 +56,7 @@ if($config['password'] === 'admin')
 
 use RedBean_Facade as R;
 R::setup($config['db_conn'], $config['db_user'], $config['db_pass']);
+R::$writer->setUseCache(false);
 
 /* app start */
 
@@ -74,6 +77,31 @@ function API(){
 	$app->add(new \JsonApiMiddleware());
 }
 
+function RATELIMITER() {
+	$app = \Slim\Slim::getInstance();
+	$uri = array_values(array_filter(explode('/', $app->request->getResourceUri())));
+	$r = new Util($app);
+	if($uri[0] === 'manage' && $uri[1] === 'packages') {
+		return true;
+	}
+	if($r->checkLimit($uri[0]) === false) {
+		return $r->respond(503, 'LIMIT EXCEEDED', false);
+	}
+}
+
+function CHECKTOKEN() {
+	$app = \Slim\Slim::getInstance();
+	$uri = array_values(array_filter(explode('/', $app->request->getResourceUri())));
+	$r = new Util($app);
+	$token = $app->request->headers->get('Auth-Token');
+	if($uri[0] === 'manage' && $uri[1] === 'packages') {
+		return true;
+	}
+	if($r->checkTokenHeader($uri[0], $token) === false) {
+		return $r->respond(403, 'UNAUTHORIZED', true);
+	}
+}
+
 function AUTH() {
 	$app = \Slim\Slim::getInstance();
 	if(!isset($_SESSION['authenticated']) || !isset($_SESSION['expires'])  || $_SESSION['expires'] < (time())) {
@@ -82,6 +110,12 @@ function AUTH() {
 }
 
 $r = new Util($app);
+
+/* Test Route */
+
+$app->get('/','API', function() use ($r){
+	$r->respond(200, 'OK');
+});
 
 /* Management Routes */
 
@@ -113,57 +147,53 @@ $app->post('/login', function() use ($app, $config) {
 	$app->redirect( ROOT_URI . '/login');
 });
 
-$app->get('/', 'API', function() use ($r){
-	$r->respond(200, 'OK');
-});
-
-
 /* REST API Routes */
 
-$app->get('/:package/:name', 'API', function ($package, $name) use ($r, $app, $config) {
+$app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
+	try {
+		if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
-	}
-
-	$query = R::$f->begin()->select('*')->from($tableName);
-
-	$wheres = json_decode($app->request()->params('where'));
-
-	if(is_array($wheres)) {
-		$count = 0;
-		foreach ($wheres as $where) {
-			if($count === 0)
-				$query->where($where[0] . ' ' . $where[1] . ' ?');
-			else
-				$query->and($where[0] . ' ' . $where[1] . ' ?');
-			$query->put($where[2]);
-			$count++;
 		}
-	}
-	$orders = json_decode($app->request()->params('order'));
-	if(is_array($orders)) {
-		$order_by = [];
-		foreach ($orders as $order) {
-			if(!isset($order[1]))
-				$order[1] = 'asc';
-			$order_by[] = $order[0] . ' ' . $order[1];
+		$query = R::$f->begin()->select('*')->from($tableName);
+		$wheres = json_decode($app->request()->params('where'));
+		if(is_array($wheres)) {
+			$count = 0;
+			foreach ($wheres as $where) {
+				if($count === 0)
+					$query->where($where[0] . ' ' . $where[1] . ' ?');
+				else
+					$query->and($where[0] . ' ' . $where[1] . ' ?');
+				$query->put($where[2]);
+				$count++;
+			}
 		}
-		$order_by = implode(',', $order_by);
-		$query->order_by($order_by);
-	}
+		$orders = json_decode($app->request()->params('order'));
+		if(is_array($orders)) {
+			$order_by = [];
+			foreach ($orders as $order) {
+				if(!isset($order[1]))
+					$order[1] = 'asc';
+				$order_by[] = $order[0] . ' ' . $order[1];
+			}
+			$order_by = implode(',', $order_by);
+			$query->order_by($order_by);
+		}
 
-	$limits = json_decode($app->request()->params('limit'));
-	if(is_array($limits)) {
-		$query->limit(implode(', ', $limits));
-	} else if (is_array($config['default_sql_limit']) && $tableName !== 'managepackages') {
-		$query->limit(implode(', ', $config['default_sql_limit']));
+		$limits = json_decode($app->request()->params('limit'));
+		if(is_array($limits)) {
+			$query->limit(implode(', ', $limits));
+		} else if (is_array($config['default_sql_limit']) && $tableName !== 'managepackages') {
+			$query->limit(implode(', ', $config['default_sql_limit']));
+		}
+		$data = $query->get();
+	} catch (Exception $e) {
+		$data = R::exportAll(R::findAll($tableName));
 	}
-	$data = $query->get();
 	return $r->respond(200, $data);
 });
 
-$app->get('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r) {
+$app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
 	$tableName = $r->genTableName($package, $name);
 	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
@@ -176,7 +206,7 @@ $app->get('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r)
 	return $r->respond(404, 'NOT FOUND', true);
 });
 
-$app->post('/:package/:name', 'API', function ($package, $name) use ($r, $app) {
+$app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name) use ($r, $app) {
 	$tableName = $r->genTableName($package, $name);
 	if(!$r->packageOK($package, 'insert') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
@@ -188,7 +218,7 @@ $app->post('/:package/:name', 'API', function ($package, $name) use ($r, $app) {
 	return $r->respond(201, $bean->export());
 });
 
-$app->put('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r, $app) {
+$app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r, $app) {
 	$tableName = $r->genTableName($package, $name);
 	if(!$r->packageOK($package, 'update') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
@@ -204,7 +234,7 @@ $app->put('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r,
 	return $r->respond(200, $bean->export());
 });
 
-$app->delete('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r) {
+$app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
 	$tableName = $r->genTableName($package, $name);
 	if(!$r->packageOK($package ,'remove') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
