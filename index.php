@@ -214,6 +214,9 @@ $app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($packa
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$request = (array) json_decode($app->request()->getBody());
+	if(!is_array($request)) {
+		return $r->respond(400, 'BAD DATA', true);
+	}
 	$bean = R::dispense($tableName);
 	$bean->import($request);
 	R::store($bean);
@@ -226,14 +229,16 @@ $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$request = (array) json_decode($app->request()->getBody());
-	$bean = R::load($tableName, $id);
-	$data = $bean->export();
-	if($data['id'] === 0) {
-		return $r->respond(404, 'NOT FOUND', true);
+	if(!is_array($request)) {
+		return $r->respond(400, 'BAD DATA', true);
 	}
-	$bean->import($request);
-	R::store($bean);
-	return $r->respond(200, $bean->export());
+	$data = R::findOne($tableName, $id);
+	if($data) {
+		$data->import($request);
+		R::store($data);
+		return $r->respond(200, $data->export());
+	}
+	return $r->respond(404, 'NOT FOUND', true);
 });
 
 $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
