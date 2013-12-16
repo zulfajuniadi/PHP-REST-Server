@@ -1,0 +1,4 @@
+vendor/*
+config.php
+composer.lock
+.DS_STORE

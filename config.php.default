@@ -1,0 +1,7 @@
+<?php
+	$config['session_expiry'] = 60 * 60 * 4; // 4 hours
+	//http://www.php.net/manual/en/timezones.php
+	$config['timezone'] = 'UTC';
+	$config['username'] = 'admin';
+	$config['password'] = 'admin';
+	$config['debug'] = false;
