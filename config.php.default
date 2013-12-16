@@ -33,21 +33,21 @@
 
 	/* MySQL */
 
-	// $config['DBConn'] = 'mysql:host=localhost;dbname=APIServer';
-	// $config['DBUser'] = 'root';
-	// $config['DBPass'] = null;
+	// $config['db_conn'] = 'mysql:host=localhost;dbname=APIServer';
+	// $config['db_user'] = 'root';
+	// $config['db_pass'] = null;
 
 	/* PostgreSQL */
 
-	// $config['DBConn'] = 'pgsql:host=localhost;dbname=APIServer';
-	// $config['DBUser'] = 'root';
-	// $config['DBPass'] = null;
+	// $config['db_conn'] = 'pgsql:host=localhost;dbname=APIServer';
+	// $config['db_user'] = 'root';
+	// $config['db_pass'] = null;
 
 	/* CUBRID */
 
-	// $config['DBConn'] = 'cubrid:host=localhost;port=30000;dbname=APIServer';
-	// $config['DBUser'] = 'root';
-	// $config['DBPass'] = null;
+	// $config['db_conn'] = 'cubrid:host=localhost;port=30000;dbname=APIServer';
+	// $config['db_user'] = 'root';
+	// $config['db_pass'] = null;
 
 	/* GET Query Limit */
 	// format = array(int $start, int $length);
