@@ -19,9 +19,26 @@ if(!file_exists('vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))
 	die('Run composer update first. View https://github.com/zulfajuniadi/PHP-REST-Server for more info');
 require_once('vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
+
+
 if(!file_exists('config.php'))
 	die('config.php not found. Have you renamed the config.php.default to config.php?');
+
+$config = array();
 require_once('config.php');
+
+$default_config = array();
+$default_config['debug'] = true;
+$default_config['session_expiry'] = 60 * 60 * 4;
+$default_config['username'] = 'admin';
+$default_config['password'] = 'admin';
+$default_config['timezone'] = 'UTC';
+$default_config['db_conn'] = 'sqlite:db/database.sqlite3';
+$default_config['db_user'] = null;
+$default_config['db_pass'] = null;
+$default_config['default_sql_limit'] = array(0, 25);
+$default_config['rate_limit'] = 100;
+$config = array_merge($default_config, $config);
 
 if(file_exists('config.php.default') && $config['debug'] === false)
 	die('Please remove the config.php.default.');
@@ -36,7 +53,7 @@ if($config['password'] === 'admin')
 /* setup database */
 
 use RedBean_Facade as R;
-R::setup($config['DBConn'], $config['DBUser'], $config['DBPass']);
+R::setup($config['db_conn'], $config['db_user'], $config['db_pass']);
 
 /* app start */
 
@@ -103,13 +120,46 @@ $app->get('/', 'API', function() use ($r){
 
 /* REST API Routes */
 
-$app->get('/:package/:name', 'API', function ($package, $name) use ($r) {
+$app->get('/:package/:name', 'API', function ($package, $name) use ($r, $app, $config) {
 	$tableName = $r->genTableName($package, $name);
 	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$beans = R::findAll($tableName);
-	$data = R::exportAll($beans);
+
+	$query = R::$f->begin()->select('*')->from($tableName);
+
+	$wheres = json_decode($app->request()->params('where'));
+
+	if(is_array($wheres)) {
+		$count = 0;
+		foreach ($wheres as $where) {
+			if($count === 0)
+				$query->where($where[0] . ' ' . $where[1] . ' ?');
+			else
+				$query->and($where[0] . ' ' . $where[1] . ' ?');
+			$query->put($where[2]);
+			$count++;
+		}
+	}
+	$orders = json_decode($app->request()->params('order'));
+	if(is_array($orders)) {
+		$order_by = [];
+		foreach ($orders as $order) {
+			if(!isset($order[1]))
+				$order[1] = 'asc';
+			$order_by[] = $order[0] . ' ' . $order[1];
+		}
+		$order_by = implode(',', $order_by);
+		$query->order_by($order_by);
+	}
+
+	$limits = json_decode($app->request()->params('limit'));
+	if(is_array($limits)) {
+		$query->limit(implode(', ', $limits));
+	} else if (is_array($config['default_sql_limit']) && $tableName !== 'managepackages') {
+		$query->limit(implode(', ', $config['default_sql_limit']));
+	}
+	$data = $query->get();
 	return $r->respond(200, $data);
 });
 

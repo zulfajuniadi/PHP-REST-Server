@@ -14,7 +14,6 @@ PHP REST Server
 1. In the directory run ``composer install --prefer-dist --no-dev``.
 1. Change the configs in config.php.default and rename it to config.php.
 
-
 ##Usage
 
 1. Create new package by going to http://[installationpath]/manage.
@@ -23,17 +22,91 @@ PHP REST Server
 
 ##Routes
 
-1. **List All** >> GET:http://[installationpath]/[packagename]/[tableName]
-1. **Get One** >> GET:http://[installationpath]/[packagename]/[tableName]/[id]
-1. **Create New** >> POST:http://[installationpath]/[packagename]/[tableName]
-1. **Update** >> PUT:http://[installationpath]/[packagename]/[tableName]/[id]
-1. **Delete** >> DELETE:http://[installationpath]/[packagename]/[tableName]/[id]
+1. **List Records** >> (GET) http://[installationpath]/[packagename]/[tableName]
+1. **Get One** >> (GET) http://[installationpath]/[packagename]/[tableName]/[id]
+1. **Create New** >> (POST) http://[installationpath]/[packagename]/[tableName]
+1. **Update** >> (PUT) http://[installationpath]/[packagename]/[tableName]/[id]
+1. **Delete** >> (DELETE) http://[installationpath]/[packagename]/[tableName]/[id]
 
-##Examples
+Example
+
+Let's say you create an application (package) called 'uberpackage' and you want to retrieve all users. The request should be:
+``http://api.uberapp.com/uberapp/users``
+
+*List Records is subject to the default limit as in the Querying::order section below.*
+
+##Querying
+
+Queries are appended to the List All GET request.
+
+###Where
+
+Key : ``where``
+Example : http://api.uberapp.com/uberapp/users?where=[["id",">",23],["name","like","%adam"]]
+Generates : ``select all from users where id > 23 and name like '%adam';``
+
+*Right now only 'and' is supported*
+
+###Order
+
+Key : ``order``
+Example : http://api.uberapp.com/uberapp/users?order=[["age","desc"],["name","asc"]]
+Generates : ``select all from users order by age desc, name asc;``
+
+*Note that if you did not pass the second parameter in an order array, it will default to asc. The following syntax is valid*
+
+http://api.uberapp.com/uberapp/users?order=[["age"]]
+Generates : ``select all from users order by age asc;``
+
+###Limit
+
+Key : ``limit``
+Params : [$start,$length]
+Example : http://api.uberapp.com/uberapp/users?limit=[0,25]
+Generates : ``select all from users limit 0, 25;``
+
+*By default, all queryies will return only 25 rows, you can change the default limit in config.php $config['default_sql_limit'] variable*
+
+###Chained
+
+Queries can be chained as per example below:
+
+Example : http://api.uberapp.com/uberapp/users?where=[["age",">",18]]&order=[["age","desc"],["name"]]&limit=[0,50]
+Generates : ``select * from users where age > 18 order by age desc, name asc limit 0, 50;``
+
+##Access Control List (ACL)
+
+This REST service offers very simple ACL system where you can set ACL per package level. You can define whether any user are able to list (and query), create, update or remove a record in any combinations. You can also disable the whole package by unchecking the 'Enabled' checkbox.
+
+##Example Usage
 
 View the ``templates/_manage.html`` and ``js/manage.js`` to view API usage with ``Backbone.js``
 
+##List of HTTP Responses
+
+1. 200 : (OK) Request was successfully performed
+1. 201 : (Created) A new entry was created (During the POST method)
+1. 400 : (Bad Request) Either the package has not yet been created, or the package is marked disabled or the method is disabled. (View ACL Section).
+1. 403 : (Forbidden) The client end did not send the authentication token inside the header (Not Yet Implemented).
+1. 404 : (Not Found) The record does not exist. May happen during the Get (GET:/packageName/resourceName/id) One request or Update (PUT:/packageName/resourceName/id) request
+1. 500 : (Server Error) PHP Farted. Shouldn't Happen. Check Server Logs.
+1. 503 : (Service Unavailable) For rate limiting (Not Yet Implemented)
+
+##Data Structure
+
+The server responds in the following data format:
+
+```json
+{
+	"error" : false,
+	"data" : [],
+	"status" : 200
+}
+
+```
+
 ##Todos
 
-1. Query route (wheres, limits, orders)
 1. Auto sync (Client data to be persistant on client side, can sync automatically from the server when there are new data)
+1. Rate limiting
+1. Authentication

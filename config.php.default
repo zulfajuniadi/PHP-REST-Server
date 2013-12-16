@@ -17,7 +17,7 @@
 	//http://www.php.net/manual/en/timezones.php
 
 	$config['timezone'] = 'UTC';
-	date_default_timezone_set($config['timezone']);
+	(isset($config['timezone'])) ? date_default_timezone_set($config['timezone']) : null;
 
 	/* Database */
 
@@ -27,9 +27,9 @@
 
 	/* SQLite */
 
-	$config['DBConn'] = 'sqlite:db/database.sqlite3';
-	$config['DBUser'] = null;
-	$config['DBPass'] = null;
+	$config['db_conn'] = 'sqlite:db/database.sqlite3';
+	$config['db_user'] = null;
+	$config['db_pass'] = null;
 
 	/* MySQL */
 
@@ -48,6 +48,17 @@
 	// $config['DBConn'] = 'cubrid:host=localhost;port=30000;dbname=APIServer';
 	// $config['DBUser'] = 'root';
 	// $config['DBPass'] = null;
+
+	/* GET Query Limit */
+	// format = array(int $start, int $length);
+	// 0 to disable
+	$config['default_sql_limit'] = array(0,25);
+
+	/* Rate Limiting / Package / minute */
+	// not implemented yet
+	// 0 = disable
+
+	$config['rate_limit'] = 100;
 
 
 

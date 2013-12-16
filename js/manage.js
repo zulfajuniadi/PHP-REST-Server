@@ -127,7 +127,11 @@
 		} else {
 			packages.create({
 				name : name,
-				enabled : enabled
+				enabled : enabled,
+				list : list,
+				insert : insert,
+				update : update,
+				remove : remove
 			});
 		}
 		editId = false;
