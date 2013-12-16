@@ -81,6 +81,7 @@ function RATELIMITER() {
 	$app = \Slim\Slim::getInstance();
 	$uri = array_values(array_filter(explode('/', $app->request->getResourceUri())));
 	$r = new Util($app);
+
 	if($uri[0] === 'manage' && $uri[1] === 'packages') {
 		return true;
 	}
@@ -97,9 +98,11 @@ function CHECKTOKEN() {
 	if($uri[0] === 'manage' && $uri[1] === 'packages') {
 		return true;
 	}
+
 	if($r->checkTokenHeader($uri[0], $token) === false) {
 		return $r->respond(403, 'UNAUTHORIZED', true);
 	}
+
 }
 
 function AUTH() {
@@ -198,10 +201,9 @@ $app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$bean = R::load($tableName, $id);
-	$data = $bean->export();
-	if($data['id'] !== 0) {
-		return $r->respond(200, $data[0]);
+	$data = R::findOne($tableName, $id);
+	if($data) {
+		return $r->respond(200, $data->export());
 	}
 	return $r->respond(404, 'NOT FOUND', true);
 });

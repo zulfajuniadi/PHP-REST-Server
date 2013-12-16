@@ -11,7 +11,7 @@ class Util
 	}
 
 	public function packageOK($package, $state) {
-		$packages = R::find('managepackages', ' name = ? and enabled = "true" and ' . $state . ' = "true" ', array($this->cleanup($package)));
+		$packages = R::find('managepackages', ' name = ? and enabled = "true" and "' . $state . '" = "true" ', array($this->cleanup($package)));
 
 		if(count($packages) > 0) {
 			return true;
