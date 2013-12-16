@@ -6,6 +6,13 @@ session_cache_limiter(false);
 session_start();
 session_write_close();
 
+/* define root uri */
+
+$ROOT_URI = explode('/', $_SERVER['PHP_SELF']);
+array_pop($ROOT_URI);
+$ROOT_URI = implode('/', $ROOT_URI);
+define('ROOT_URI', $ROOT_URI);
+
 /* require external files */
 
 require_once('vendor/autoload.php');
@@ -48,7 +55,7 @@ function API(){
 function AUTH() {
 	$app = \Slim\Slim::getInstance();
 	if(!isset($_SESSION['authenticated']) || !isset($_SESSION['expires'])  || $_SESSION['expires'] < (time())) {
-		return $app->redirect('/login');
+		return $app->redirect( ROOT_URI . '/login');
 	}
 }
 
@@ -68,7 +75,7 @@ $app->get('/logout', function() use ($app) {
 	session_start();
 	session_destroy();
 	session_write_close();
-	return $app->redirect("/login");
+	return $app->redirect( ROOT_URI . "/login");
 });
 
 $app->post('/login', function() use ($app, $config) {
@@ -79,9 +86,9 @@ $app->post('/login', function() use ($app, $config) {
 		$_SESSION['authenticated'] = true;
 		$_SESSION['expires'] = time() + $config['session_expiry'];
 		session_write_close();
-		return $app->redirect('/manage');
+		return $app->redirect( ROOT_URI . '/manage');
 	}
-	$app->redirect('/login');
+	$app->redirect( ROOT_URI . '/login');
 });
 
 $app->get('/', 'API', function() use ($r){

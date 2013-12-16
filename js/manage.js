@@ -20,7 +20,7 @@
 			return response.data;
 		},
 		url : function() {
-			return '/manage/packages'
+			return 'manage/packages'
 		},
 		model : packageModel
 	});
