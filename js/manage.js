@@ -34,9 +34,12 @@
 		template : Handlebars.compile($('#tbodyTemplate').html()),
 		events : {
 			"click .delete": function(e){
+
 				var id = $(e.currentTarget).data('id');
 				if(id) {
-					this.collection.get(id).destroy();
+					var model = this.collection.get(id);
+					if(confirm('Are you sure you want to remove ' + model.attributes.name + '?'))
+						model.destroy();
 				}
 			},
 			"click .edit": function(e){
@@ -49,6 +52,26 @@
 						$("#enabled").prop( "checked", true );
 					} else {
 						$("#enabled").prop( "checked", false );
+					}
+					if(model.attributes.list === 'true') {
+						$("#list").prop( "checked", true );
+					} else {
+						$("#list").prop( "checked", false );
+					}
+					if(model.attributes.insert === 'true') {
+						$("#insert").prop( "checked", true );
+					} else {
+						$("#insert").prop( "checked", false );
+					}
+					if(model.attributes.update === 'true') {
+						$("#update").prop( "checked", true );
+					} else {
+						$("#update").prop( "checked", false );
+					}
+					if(model.attributes.remove === 'true') {
+						$("#remove").prop( "checked", true );
+					} else {
+						$("#remove").prop( "checked", false );
 					}
 				}
 			}
@@ -77,13 +100,29 @@
 
 	$('#form').on('submit', function(){
 		var enabled = 'false';
+		var list = 'false';
+		var insert = 'false';
+		var update = 'false';
+		var remove = 'false';
 		var name = $('#name').val().replace(/[^0-9A-Za-z]/g,'').toLowerCase();
 		if($('#enabled').is(':checked'))
 			enabled = 'true';
+		if($('#list').is(':checked'))
+			list = 'true';
+		if($('#insert').is(':checked'))
+			insert = 'true';
+		if($('#update').is(':checked'))
+			update = 'true';
+		if($('#remove').is(':checked'))
+			remove = 'true';
 		if(editId) {
 			packages.get(editId).save({
 				name : name,
-				enabled : enabled
+				enabled : enabled,
+				list : list,
+				insert : insert,
+				update : update,
+				remove : remove
 			});
 		} else {
 			packages.create({

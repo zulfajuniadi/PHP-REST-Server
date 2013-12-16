@@ -23,7 +23,7 @@ if(!file_exists('config.php'))
 	die('config.php not found. Have you renamed the config.php.default to config.php?');
 require_once('config.php');
 
-if(file_exists('config.php.default'))
+if(file_exists('config.php.default') && $config['debug'] === false)
 	die('Please remove the config.php.default.');
 
 require_once('utils.php');
@@ -105,20 +105,9 @@ $app->get('/', 'API', function() use ($r){
 
 $app->get('/:package/:name', 'API', function ($package, $name) use ($r) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
+	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$beans = R::findAll($tableName);
-	$data = R::exportAll($beans);
-	return $r->respond(200, $data);
-});
-
-$app->get('/:package/:name/query', 'API', function ($package, $name) use ($r) {
-	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-	die(print_r($_GET));
 	$beans = R::findAll($tableName);
 	$data = R::exportAll($beans);
 	return $r->respond(200, $data);
@@ -126,7 +115,7 @@ $app->get('/:package/:name/query', 'API', function ($package, $name) use ($r) {
 
 $app->get('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
+	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$bean = R::load($tableName, $id);
@@ -139,7 +128,7 @@ $app->get('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r)
 
 $app->post('/:package/:name', 'API', function ($package, $name) use ($r, $app) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
+	if(!$r->packageOK($package, 'insert') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$request = (array) json_decode($app->request()->getBody());
@@ -151,7 +140,7 @@ $app->post('/:package/:name', 'API', function ($package, $name) use ($r, $app) {
 
 $app->put('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r, $app) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
+	if(!$r->packageOK($package, 'update') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$request = (array) json_decode($app->request()->getBody());
@@ -167,7 +156,7 @@ $app->put('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r,
 
 $app->delete('/:package/:name/:id', 'API', function ($package, $name, $id) use ($r) {
 	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageExists($package) && $tableName !== 'managepackages') {
+	if(!$r->packageOK($package ,'remove') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
 	$bean = R::load($tableName, $id);

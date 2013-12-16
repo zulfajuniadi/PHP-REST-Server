@@ -10,8 +10,8 @@ class Util
 		return strtolower((preg_replace('/[^0-9a-zA-Z]+/', '', $string)));
 	}
 
-	public function packageExists($package) {
-		$packages = R::find('managepackages', ' name = ? and enabled = "true" ', array($this->cleanup($package)));
+	public function packageOK($package, $state) {
+		$packages = R::find('managepackages', ' name = ? and enabled = "true" and ' . $state . ' = "true" ', array($this->cleanup($package)));
 
 		if(count($packages) > 0) {
 			return true;

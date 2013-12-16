@@ -3,9 +3,24 @@
 <head>
 	<meta charset="UTF-8">
 	<title>API Gateway</title>
-	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css">
-	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css">
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<link rel="stylesheet" href="css/font-awesome.css">
 </head>
+<style>
+	.fa-check {
+		color : darkgreen;
+	}
+	.fa-times {
+		color : red;
+	}
+	.centered {
+		text-align: center;
+	}
+	.radio label, .checkbox label {
+		width: 75px;
+		display: inline-block;
+	}
+</style>
 <body>
 	<br>
 	<br>
@@ -19,13 +34,17 @@
 			<thead>
 				<tr>
 					<th>Name</th>
-					<th>Enabled</th>
-					<th>Action</th>
+					<th width="10%" class="centered">Enabled</th>
+					<th width="10%" class="centered">List</th>
+					<th width="10%" class="centered">Insert</th>
+					<th width="10%" class="centered">Update</th>
+					<th width="10%" class="centered">Remove</th>
+					<th width="15%" class="centered">Action</th>
 				</tr>
 			</thead>
 			<tbody id="tbody">
 				<tr>
-					<td colspan="3">No Data</td>
+					<td class="centered" colspan="7">No Packages. Add some below.</td>
 				</tr>
 			</tbody>
 		</table>
@@ -35,14 +54,34 @@
 		<form class="form-inline" id="form" role="form" method="post">
 			<div class="form-group">
 				<label class="sr-only" for="name">Package Name</label>
-				<input type="text" class="form-control" id="name" name="name" placeholder="Enter Package Name">
+				<input type="text" class="form-control" id="name" name="name" required placeholder="Enter Package Name">
 			</div>
 			<div class="checkbox">
 				<label>
 					<input type="checkbox" id="enabled" checked="checked" name="enabled"> Enabled
 				</label>
 			</div>
-			<button type="submit" class="btn btn-default">Save</button>
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" id="list" checked="checked" name="list"> List
+				</label>
+			</div>
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" id="insert" checked="checked" name="insert"> Insert
+				</label>
+			</div>
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" id="update" checked="checked" name="update"> Update
+				</label>
+			</div>
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" id="remove" checked="checked" name="remove"> Remove
+				</label>
+			</div>
+			<button type="submit" class="btn btn-primary">Save</button>
 		</form>
 
 	</div>
@@ -50,32 +89,60 @@
 		{{#each data}}
 			<tr>
 				<td>{{name}}</td>
-				<td>
+				<td class="centered">
 					{{#trueFalse enabled}}
-						True
+						<i class="fa fa-check"></i>
 					{{else}}
-						False
+						<i class="fa fa-times"></i>
 					{{/trueFalse}}
 				</td>
-				<td>
-					<button class="edit" data-id="{{id}}">
+				<td class="centered">
+					{{#trueFalse list}}
+						<i class="fa fa-check"></i>
+					{{else}}
+						<i class="fa fa-times"></i>
+					{{/trueFalse}}
+				</td>
+				<td class="centered">
+					{{#trueFalse insert}}
+						<i class="fa fa-check"></i>
+					{{else}}
+						<i class="fa fa-times"></i>
+					{{/trueFalse}}
+				</td>
+				<td class="centered">
+					{{#trueFalse update}}
+						<i class="fa fa-check"></i>
+					{{else}}
+						<i class="fa fa-times"></i>
+					{{/trueFalse}}
+				</td>
+				<td class="centered">
+					{{#trueFalse remove}}
+						<i class="fa fa-check"></i>
+					{{else}}
+						<i class="fa fa-times"></i>
+					{{/trueFalse}}
+				</td>
+				<td class="centered">
+					<button class="btn btn-primary edit" data-id="{{id}}">
 						<i class="fa fa-edit"></i>
 					</button>
-					<button class="delete" data-id="{{id}}">
+					<button class="btn btn-danger delete" data-id="{{id}}">
 						<i class="fa fa-trash-o"></i>
 					</button>
 				</td>
 			</tr>
 		{{else}}
 			<tr>
-				<td colspan="3">No Data</td>
+				<td class="centered" colspan="7">No Packages. Add some below.</td>
 			</tr>
 		{{/each}}
 	</template>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.1.2/handlebars.min.js"></script>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min.js"></script>
+	<script src="js/lib/jquery.js"></script>
+	<script src="js/lib/handlebars.js"></script>
+	<script src="js/lib/lodash.js"></script>
+	<script src="js/lib/backbone.js"></script>
 	<script src="js/manage.js"></script>
 </body>
 </html>
