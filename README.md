@@ -37,4 +37,3 @@ View the ``templates/_manage.html`` and ``js/manage.js`` to view API usage with 
 
 1. Query route (wheres, limits, orders)
 1. Auto sync (Client data to be persistant on client side, can sync automatically from the server when there are new data)
-1. ACL
