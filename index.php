@@ -15,8 +15,17 @@ define('ROOT_URI', $ROOT_URI);
 
 /* require external files */
 
-require_once('vendor/autoload.php');
+if(!file_exists('vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))
+	die('Run composer update first. View https://github.com/zulfajuniadi/PHP-REST-Server for more info');
+require_once('vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
+
+if(!file_exists('config.php'))
+	die('config.php not found. Have you renamed the config.php.default to config.php?');
 require_once('config.php');
+
+if(file_exists('config.php.default'))
+	die('Please remove the config.php.default.');
+
 require_once('utils.php');
 
 /* make sure admin pass has changed */
