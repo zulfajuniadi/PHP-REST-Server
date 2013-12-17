@@ -22,7 +22,7 @@ class Util
 		foreach ($array as $row => $columns) {
 			foreach ($columns as $key => $value) {
 				if(is_array($value) || is_object($value)) {
-					$array[$row][$key] = serialize($value);
+					$array[$row][$key] = json_encode($value);
 				} else {
 					$array[$row][$key] = $value;
 				}
@@ -35,8 +35,8 @@ class Util
 		foreach ($array as $row => $columns) {
 			foreach ($columns as $key => $value) {
 				try {
-					if(unserialize($value) !== false) {
-						$array[$row][$key] = unserialize($value);
+					if(json_decode($value) !== null) {
+						$array[$row][$key] = json_decode($value);
 					}
 				} catch (Exception $e) {
 					$array[$row][$key] = $value;
