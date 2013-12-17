@@ -11,12 +11,39 @@ class Util
 	}
 
 	public function packageOK($package, $state) {
-		$packages = R::find('managepackages', ' name = ? and enabled = "true" and "' . $state . '" = "true" ', array($this->cleanup($package)));
-
+		$packages = R::find('managepackages', ' name = ? and enabled = "true" and `' . $state . '` = "true" ', array($this->cleanup($package)));
 		if(count($packages) > 0) {
 			return true;
 		}
 		return false;
+	}
+
+	public function serialize($array) {
+		foreach ($array as $row => $columns) {
+			foreach ($columns as $key => $value) {
+				if(is_array($value) || is_object($value)) {
+					$array[$row][$key] = serialize($value);
+				} else {
+					$array[$row][$key] = $value;
+				}
+			}
+		}
+		return $array;
+	}
+
+	public function unserialize($array) {
+		foreach ($array as $row => $columns) {
+			foreach ($columns as $key => $value) {
+				try {
+					if(unserialize($value) !== false) {
+						$array[$row][$key] = unserialize($value);
+					}
+				} catch (Exception $e) {
+					$array[$row][$key] = $value;
+				}
+			}
+		}
+		return $array;
 	}
 
 	public function genTableName($package, $name) {
@@ -55,7 +82,7 @@ class Util
 		return false;
 	}
 
-	public function respond($code, $msg = array(), $error = FALSE) {
+	public function respond($code, $msg = '', $error = FALSE) {
 		$this->app->render($code ,array(
 			'error' => $error,
 			'data' => $msg

@@ -6,6 +6,9 @@ RewriteEngine On
 #
 # RewriteBase /
 
+Header add Content-Type "application/json"
+Header add Access-Control-Allow-Methods "GET,HEAD,POST,PUT,DELETE,OPTIONS"
+Header add Access-Control-Allow-Headers "Auth-Token,Content-Type"
 Header add Access-Control-Allow-Origin "*"
 RewriteRule /?\.htaccess$ - [F,L]
 RewriteRule /?\config.php$ - [F,L]

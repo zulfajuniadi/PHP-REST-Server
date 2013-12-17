@@ -193,6 +193,7 @@ $app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package
 	} catch (Exception $e) {
 		$data = R::exportAll(R::findAll($tableName));
 	}
+	$data = $r->unserialize($data);
 	return $r->respond(200, $data);
 });
 
@@ -201,9 +202,10 @@ $app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$data = R::findOne($tableName, $id);
+	$data = R::findOne($tableName, 'id = ?', array($id));
 	if($data) {
-		return $r->respond(200, $data->export());
+		$data = $r->unserialize(array($data->export()))[0];
+		return $r->respond(200, $data[0]);
 	}
 	return $r->respond(404, 'NOT FOUND', true);
 });
@@ -217,10 +219,15 @@ $app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($packa
 	if(!is_array($request)) {
 		return $r->respond(400, 'BAD DATA', true);
 	}
-	$bean = R::dispense($tableName);
-	$bean->import($request);
-	R::store($bean);
-	return $r->respond(201, $bean->export());
+	$data = R::dispense($tableName);
+	$data::setFlagBeautifulColumnNames(false);
+	$requestData = $r->serialize(array($request))[0];
+	foreach ($requestData as $key => $value) {
+		$data->{$key} = $value;
+	}
+	R::store($data);
+	$data = $r->unserialize(array($data->export()));
+	return $r->respond(201, $data[0]);
 });
 
 $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r, $app) {
@@ -232,11 +239,16 @@ $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 	if(!is_array($request)) {
 		return $r->respond(400, 'BAD DATA', true);
 	}
-	$data = R::findOne($tableName, $id);
+	$data = R::findOne($tableName, 'id = ?', array($id));
 	if($data) {
-		$data->import($request);
+		$requestData = $r->serialize(array($request))[0];
+		foreach ($requestData as $key => $value) {
+			$data->{$key} = $value;
+		}
+		$data::setFlagBeautifulColumnNames(false);
 		R::store($data);
-		return $r->respond(200, $data->export());
+		$data = $r->unserialize(array($data->export()));
+		return $r->respond(200, $data[0]);
 	}
 	return $r->respond(404, 'NOT FOUND', true);
 });
@@ -246,13 +258,18 @@ $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function (
 	if(!$r->packageOK($package ,'remove') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$bean = R::load($tableName, $id);
-	$data = $bean->export();
-	if($data['id'] === 0) {
-		return $r->respond(404, 'NOT FOUND', true);
+	$data = R::findOne($tableName, 'id = ?', array($id));
+	if($data) {
+		R::trash($data);
+		return $r->respond(200, 'DELETED');
 	}
-	R::trash($bean);
-	return $r->respond(200, 'DELETED');
+	return $r->respond(404, 'NOT FOUND', true);
+});
+
+/* Handle Options Route */
+
+$app->options('/:any+','API',function () use ($app, $r) {
+    return $r->respond(200);
 });
 
 $app->run();
