@@ -35,7 +35,7 @@ class Util
 		foreach ($array as $row => $columns) {
 			foreach ($columns as $key => $value) {
 				try {
-					if(json_decode($value) !== null) {
+					if(preg_match('/\{|\[/',$value) === 1) {
 						$array[$row][$key] = json_decode($value);
 					}
 				} catch (Exception $e) {
