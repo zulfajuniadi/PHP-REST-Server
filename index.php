@@ -57,6 +57,7 @@ if($config['password'] === 'admin')
 use RedBean_Facade as R;
 R::setup($config['db_conn'], $config['db_user'], $config['db_pass']);
 R::$writer->setUseCache(false);
+RedBean_OODBBean::setFlagBeautifulColumnNames(false);
 
 /* app start */
 
@@ -205,7 +206,7 @@ $app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 	$data = R::findOne($tableName, 'id = ?', array($id));
 	if($data) {
 		$data = $r->unserialize(array($data->export()))[0];
-		return $r->respond(200, $data[0]);
+		return $r->respond(200, $data);
 	}
 	return $r->respond(404, 'NOT FOUND', true);
 });
@@ -215,12 +216,12 @@ $app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($packa
 	if(!$r->packageOK($package, 'insert') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$request = (array) json_decode($app->request()->getBody());
-	if(!is_array($request)) {
-		return $r->respond(400, 'BAD DATA', true);
+	$request = json_decode($app->request()->getBody());
+	if(!is_array($request) && !is_object($request)) {
+		return $r->respond(400, 'MALFORMED DATA', true);
 	}
+	$request = (array) $request;
 	$data = R::dispense($tableName);
-	$data::setFlagBeautifulColumnNames(false);
 	$requestData = $r->serialize(array($request))[0];
 	foreach ($requestData as $key => $value) {
 		$data->{$key} = $value;
@@ -235,17 +236,17 @@ $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 	if(!$r->packageOK($package, 'update') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$request = (array) json_decode($app->request()->getBody());
-	if(!is_array($request)) {
-		return $r->respond(400, 'BAD DATA', true);
+	$request = json_decode($app->request()->getBody());
+	if(!is_array($request) && !is_object($request)) {
+		return $r->respond(400, 'MALFORMED DATA', true);
 	}
+	$request = (array) $request;
 	$data = R::findOne($tableName, 'id = ?', array($id));
 	if($data) {
 		$requestData = $r->serialize(array($request))[0];
 		foreach ($requestData as $key => $value) {
 			$data->{$key} = $value;
 		}
-		$data::setFlagBeautifulColumnNames(false);
 		R::store($data);
 		$data = $r->unserialize(array($data->export()));
 		return $r->respond(200, $data[0]);
