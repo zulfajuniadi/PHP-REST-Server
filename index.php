@@ -72,6 +72,8 @@ $app = new \Slim\Slim(array(
 
 /* Middlewares */
 
+$r = new Util($app);
+
 function API(){
 	$app = \Slim\Slim::getInstance();
 	$app->view(new \JsonApiView());
@@ -113,8 +115,6 @@ function AUTH() {
 	}
 }
 
-$r = new Util($app);
-
 /* Test Route */
 
 $app->get('/','API', function() use ($r){
@@ -152,6 +152,20 @@ $app->post('/login', function() use ($app, $config) {
 });
 
 /* REST API Routes */
+
+$app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){
+	if(!$r->packageOK($package)) {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+	$listOfTables = R::inspect();
+	$data = array_filter($listOfTables, function($table) use ($package){
+		return substr($table,0,strlen($package)) == $package;
+	});
+	$data = array_map(function($table) use ($package){
+		return substr($table,strlen($package));
+	}, $data);
+	return $r->respond(200, array_values($data));
+});
 
 $app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
 	$tableName = $r->genTableName($package, $name);
