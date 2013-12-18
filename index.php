@@ -240,7 +240,13 @@ $app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($packa
 	foreach ($requestData as $key => $value) {
 		$data->{$key} = $value;
 	}
-	R::store($data);
+	$id = R::store($data);
+	$sm = R::dispense('syncmeta');
+	$sm->timestamp = date('Y-m-d H:i:s');
+	$sm->tableName = $tableName;
+	$sm->type = 'insert';
+	$sm->row_id = $id;
+	R::store($sm);
 	$data = $r->unserialize(array($data->export()));
 	return $r->respond(201, $data[0]);
 });
@@ -262,6 +268,12 @@ $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 			$data->{$key} = $value;
 		}
 		R::store($data);
+		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
+		if($existingSyncMeta) {
+			$existingSyncMeta->type = 'update';
+			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
+			R::store($existingSyncMeta);
+		}
 		$data = $r->unserialize(array($data->export()));
 		return $r->respond(200, $data[0]);
 	}
@@ -275,6 +287,12 @@ $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function (
 	}
 	$data = R::findOne($tableName, 'id = ?', array($id));
 	if($data) {
+		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
+		if($existingSyncMeta) {
+			$existingSyncMeta->type = 'remove';
+			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
+			R::store($existingSyncMeta);
+		}
 		R::trash($data);
 		return $r->respond(200, 'DELETED');
 	}
