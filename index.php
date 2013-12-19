@@ -167,6 +167,61 @@ $app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use (
 	return $r->respond(200, array_values($data));
 });
 
+$app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app) {
+	$tables = $app->request()->params('resources');
+	$last_sync = $app->request()->params('last_sync');
+	$new_last_sync = date('Y-m-d H:i:s');
+
+	if(!$r->packageOK($package) || !$tables || !is_array($tables) || !$last_sync) {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+
+	$response = [];
+
+	$tables = array_map(function($table) use ($package) {
+		return $package . $table;
+	}, $tables);
+
+	foreach ($tables as $table) {
+		$response[$table]['insert'] = array();
+		$response[$table]['update'] = array();
+		$response[$table]['remove'] = array();
+		$queryData = array();
+		$queryData = R::$f->begin()
+			->select('*')
+			->from('syncmeta')
+			->left_join($table . ' on ' . $table . '.id = syncmeta.row_id')
+			->where('syncmeta.tableName = ? and syncmeta.timestamp > ?')
+			->order_by('syncmeta.type')
+			->put($table)
+			->put($last_sync)
+			->get();
+
+		foreach ($queryData as $row) {
+			$data = array();
+			$meta = array();
+			foreach ($row as $column => $value) {
+				if($column !== 'id' || $column !== 'type') {
+					if ($column === 'row_id') {
+						$data['id'] = $value;
+						$meta['id'] = $value;
+					} else if (in_array($column, array('timestamp','tableName', 'type'))) {
+						$meta[$column] = $value;
+					} else {
+						$data[$column] = $value;
+					}
+				}
+			}
+			$oper = $row['type'];
+			$response[$table][$oper][] = array(
+				'meta' => $meta,
+				'data' => $data
+			);
+		}
+	}
+	return $r->respond(200, array('response' => $response, 'last_sync' => $new_last_sync));
+});
+
 $app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
 	$tableName = $r->genTableName($package, $name);
 	try {
@@ -297,6 +352,14 @@ $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function (
 		return $r->respond(200, 'DELETED');
 	}
 	return $r->respond(404, 'NOT FOUND', true);
+});
+
+$app->error('API',function (\Exception $e) use ($app) {
+    return $r->respond(500, $e, true);
+});
+
+$app->notFound('API',function () use ($r) {
+    return $r->respond(404, 'NOT FOUND', true);
 });
 
 /* Handle Options Route */
