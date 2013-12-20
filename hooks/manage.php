@@ -11,6 +11,8 @@ $r->registerHook('manage', 'packages', 'afterGet', function($data){
 });
 
 $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
+	if(!$_SESSION['authenticated'])
+		return false;
 	$existing = R::findOne('managepackages','name = ?', array($data['name']));
 	if($existing) {
 		return false;
@@ -27,6 +29,8 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 });
 
 $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $currentData) {
+	if(!$_SESSION['authenticated'])
+		return false;
 	if($newData['hook']) {
 		try {
 			include_once('lint.php');
@@ -56,6 +60,11 @@ $r->registerHook('manage', 'packages', 'afterUpdate', function($data) {
 		}
 		file_put_contents($hookFileName, $data['hook']);
 	}
+});
+
+$r->registerHook('manage', 'packages', 'beforeRemove', function($data){
+	if(!$_SESSION['authenticated'])
+		return false;
 });
 
 $r->registerHook('manage', 'packages', 'afterRemove', function($data) {
