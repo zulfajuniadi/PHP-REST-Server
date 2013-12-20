@@ -35,13 +35,17 @@ class Util
 	public function unserialize($array) {
 		foreach ($array as $row => $columns) {
 			foreach ($columns as $key => $value) {
-				try {
-					if(preg_match('/\{|\[/',$value) === 1) {
-						$array[$row][$key] = json_decode($value);
+				// if($key === 'id') {
+				// 	$array[$row][$key] = (int) $value;
+				// } else {
+					try {
+						if(preg_match('/\{|\[/',$value) === 1) {
+							$array[$row][$key] = json_decode($value);
+						}
+					} catch (Exception $e) {
+						$array[$row][$key] = $value;
 					}
-				} catch (Exception $e) {
-					$array[$row][$key] = $value;
-				}
+				// }
 			}
 		}
 		return $array;

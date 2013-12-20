@@ -183,19 +183,23 @@ $app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app
 	}, $tables);
 
 	foreach ($tables as $table) {
-		$response[$table]['insert'] = array();
-		$response[$table]['update'] = array();
-		$response[$table]['remove'] = array();
-		$queryData = array();
-		$queryData = R::$f->begin()
-			->select('*')
-			->from('syncmeta')
-			->left_join($table . ' on ' . $table . '.id = syncmeta.row_id')
-			->where('syncmeta.tableName = ? and syncmeta.timestamp > ?')
-			->order_by('syncmeta.type')
-			->put($table)
-			->put($last_sync)
-			->get();
+		$resource = substr($table, strlen($package));
+		$response[$resource]['insert'] = array();
+		$response[$resource]['update'] = array();
+		$response[$resource]['remove'] = array();
+		try {
+			$queryData = R::$f->begin()
+				->select('*')
+				->from('syncmeta')
+				->left_join($table . ' on ' . $table . '.id = syncmeta.row_id')
+				->where('syncmeta.tableName = ? and syncmeta.timestamp > ?')
+				->order_by('syncmeta.type')
+				->put($table)
+				->put($last_sync)
+				->get();
+		} catch (Exception $e) {
+			$queryData = array();
+		}
 
 		foreach ($queryData as $row) {
 			$data = array();
@@ -203,8 +207,7 @@ $app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app
 			foreach ($row as $column => $value) {
 				if($column !== 'id' || $column !== 'type') {
 					if ($column === 'row_id') {
-						$data['id'] = $value;
-						$meta['id'] = $value;
+						$data['id'] = (int) $value;
 					} else if (in_array($column, array('timestamp','tableName', 'type'))) {
 						$meta[$column] = $value;
 					} else {
@@ -213,12 +216,13 @@ $app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app
 				}
 			}
 			$oper = $row['type'];
-			$response[$table][$oper][] = array(
+			$response[$resource][$oper][] = array(
 				'meta' => $meta,
 				'data' => $data
 			);
 		}
 	}
+
 	return $r->respond(200, array('response' => $response, 'last_sync' => $new_last_sync));
 });
 
@@ -303,7 +307,11 @@ $app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($packa
 	$sm->row_id = $id;
 	R::store($sm);
 	$data = $r->unserialize(array($data->export()));
-	return $r->respond(201, $data[0]);
+	$data = array_shift($data);
+	if($data) {
+		return $r->respond(201, $data);
+	}
+	return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
 });
 
 $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r, $app) {
@@ -330,7 +338,11 @@ $app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($pa
 			R::store($existingSyncMeta);
 		}
 		$data = $r->unserialize(array($data->export()));
-		return $r->respond(200, $data[0]);
+		$data = array_shift($data);
+		if($data) {
+			return $r->respond(200, $data);
+		}
+		return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
 	}
 	return $r->respond(404, 'NOT FOUND', true);
 });
@@ -354,18 +366,20 @@ $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function (
 	return $r->respond(404, 'NOT FOUND', true);
 });
 
+/* Handle Options Route */
+
+$app->options('/:any+','API',function () use ($app, $r) {
+    return $r->respond(200);
+});
+
+/* default 404 and Error Handler */
+
 $app->error('API',function (\Exception $e) use ($app) {
     return $r->respond(500, $e, true);
 });
 
 $app->notFound('API',function () use ($r) {
     return $r->respond(404, 'NOT FOUND', true);
-});
-
-/* Handle Options Route */
-
-$app->options('/:any+','API',function () use ($app, $r) {
-    return $r->respond(200);
 });
 
 $app->run();
