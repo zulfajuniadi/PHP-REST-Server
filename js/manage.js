@@ -1,28 +1,37 @@
-(function(w){
+(function(w) {
 
-	Handlebars.registerHelper('trueFalse', function(val, options){
-		if(val === 'true') {
+	Handlebars.registerHelper('trueFalse', function(val, options) {
+		if (val === 'true') {
 			return options.fn();
 		}
 		return options.inverse();
 	});
 
+	var editor;
+    editor = ace.edit("hooks");
+    editor.setTheme("ace/theme/github");
+    editor.getSession().setMode("ace/mode/php");
+	var updateEditor = function(packageName) {
+		var template = "<?php\n\n$r = Util::getInstance();\n\n/* called after getting the data from the database and just before sending it to the user */\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterGet', function($data) {\n\t// do something with the data\n\treturn $data;\n\t// send it to the user\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeInsert', function($data) {\n\t// do something with the data\n\treturn $data;\n\t// send it to the user\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterInsert', function($data) {\n\t// do something with the data\n\t// data already inserted, nothing to return\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeUpdate', function($data) {\n\t// do something with the data\n\treturn $data;\n\t// send it to the user\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterUpdate', function($data) {\n\t// do something with the data\n\t// data already updated, nothing to return\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeDelete', function($data) {\n\t// do something with the data\n\treturn true;\n\t// return true to allow the system to delete or false to return a 403:forbidden error;\n});\n\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterDelete', function($data) {\n\t// do something with the data\n\t// data already deleted, nothin to return\n});"
+		editor.setValue(template);
+	}
+
 	var packageModel = Backbone.Model.extend({
-		parse : function(response) {
-			if(response.data && response.status)
+		parse: function(response) {
+			if (response.data && response.status)
 				return response.data;
 			return response;
 		},
 	});
 
 	var packageCollection = Backbone.Collection.extend({
-		parse : function(response) {
+		parse: function(response) {
 			return response.data;
 		},
-		url : function() {
+		url: function() {
 			return 'manage/packages'
 		},
-		model : packageModel
+		model: packageModel
 	});
 
 	var packages = w.packages = new packageCollection();
@@ -30,82 +39,108 @@
 	var editId = false;
 
 	var tableView = Backbone.View.extend({
-		collection : packages,
-		template : Handlebars.compile($('#tbodyTemplate').html()),
-		events : {
-			"click .delete": function(e){
-
+		collection: packages,
+		template: Handlebars.compile($('#tbodyTemplate').html()),
+		events: {
+			"click .delete": function(e) {
 				var id = $(e.currentTarget).data('id');
-				if(id) {
+				if (id) {
 					var model = this.collection.get(id);
-					if(confirm('Are you sure you want to remove ' + model.attributes.name + '?'))
+					if (confirm('Are you sure you want to remove ' + model.attributes.name + '?')) {
 						model.destroy();
+						setTimeout(function(){
+							$('#packageForm')[0].reset();
+						}, 500);
+					}
 				}
 			},
-			"click .edit": function(e){
+			"click .edit": function(e) {
 				var id = $(e.currentTarget).data('id');
-				if(id) {
+				if (id) {
 					editId = id;
 					var model = this.collection.get(id);
 					$('#name').val(model.attributes.name);
+					editor.setValue(model.attributes.hook);
 					$('#api').val(model.attributes.api);
 					$('#rate').val(model.attributes.rate);
-					if(model.attributes.enabled === 'true') {
-						$("#enabled").prop( "checked", true );
+					if (model.attributes.enabled === 'true') {
+						$("#enabled").prop("checked", true);
 					} else {
-						$("#enabled").prop( "checked", false );
+						$("#enabled").prop("checked", false);
 					}
-					if(model.attributes.list === 'true') {
-						$("#list").prop( "checked", true );
+					if (model.attributes.list === 'true') {
+						$("#list").prop("checked", true);
 					} else {
-						$("#list").prop( "checked", false );
+						$("#list").prop("checked", false);
 					}
-					if(model.attributes.insert === 'true') {
-						$("#insert").prop( "checked", true );
+					if (model.attributes.insert === 'true') {
+						$("#insert").prop("checked", true);
 					} else {
-						$("#insert").prop( "checked", false );
+						$("#insert").prop("checked", false);
 					}
-					if(model.attributes.update === 'true') {
-						$("#update").prop( "checked", true );
+					if (model.attributes.update === 'true') {
+						$("#update").prop("checked", true);
 					} else {
-						$("#update").prop( "checked", false );
+						$("#update").prop("checked", false);
 					}
-					if(model.attributes.remove === 'true') {
-						$("#remove").prop( "checked", true );
+					if (model.attributes.remove === 'true') {
+						$("#remove").prop("checked", true);
 					} else {
-						$("#remove").prop( "checked", false );
+						$("#remove").prop("checked", false);
 					}
 				}
 			}
 		},
-		initialize : function() {
+		initialize: function() {
 			var self = this;
-			this.collection.on('add', function(){
+			this.collection.on('add', function() {
 				self.render();
 			});
-			this.collection.on('change', function(){
+			this.collection.on('change', function() {
 				self.render();
 			});
-			this.collection.on('remove', function(){
+			this.collection.on('remove', function() {
 				self.render();
 			});
 			this.collection.fetch();
 		},
-		render : function() {
-			this.$el.html(this.template({ data : _.pluck(this.collection.toArray(), 'attributes') || []}));
+		render: function() {
+			this.$el.html(this.template({
+				data: _.pluck(this.collection.toArray(), 'attributes') || []
+			}));
 		}
 	});
 
 	var table = w.table = new tableView({
-		el : $('#tbody')[0]
+		el: $('#tbody')[0]
+	});
+
+	$('#resetForm').click(function() {
+		editId = null;
+	});
+
+	$('#genHooks').click(function(){
+		var val = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+		if(val.length === 0) {
+			alert('Input a package name first');
+			$('#name').focus();
+		} else {
+			if(editor.getValue().length > 0) {
+				if(confirm('Are you sure you want to generate the hooks? It will override the existing one.')) {
+					updateEditor(val);
+				}
+			} else {
+				updateEditor(val);
+			}
+		}
 	});
 
 	$('#genApiKey').click(function() {
-	    var text = "";
-	    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	    for( var i=0; i < 24; i++ )
-	        text += possible.charAt(Math.floor(Math.random() * possible.length));
-		if($('#api').val() !== '' && editId) {
+		var text = "";
+		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+		for (var i = 0; i < 24; i++)
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+		if ($('#api').val() !== '' && editId) {
 			if (confirm('Are you sure you want to change the API Key?'))
 				return $('#api').val(text);
 			else
@@ -114,40 +149,48 @@
 		return $('#api').val(text);
 	});
 
-	$('#form').on('submit', function(){
+	$('#packageForm').on('submit', function() {
 		var enabled = 'false';
 		var list = 'false';
 		var insert = 'false';
 		var update = 'false';
 		var remove = 'false';
-		var name = $('#name').val().replace(/[^0-9A-Za-z]/g,'').toLowerCase();
-		if($('#enabled').is(':checked'))
+		var hook = editor.getValue() || null;
+		var name = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+		if ($('#enabled').is(':checked'))
 			enabled = 'true';
-		if($('#list').is(':checked'))
+		if ($('#list').is(':checked'))
 			list = 'true';
-		if($('#insert').is(':checked'))
+		if ($('#insert').is(':checked'))
 			insert = 'true';
-		if($('#update').is(':checked'))
+		if ($('#update').is(':checked'))
 			update = 'true';
-		if($('#remove').is(':checked'))
+		if ($('#remove').is(':checked'))
 			remove = 'true';
 		var data = {
-			name : name,
-			enabled : enabled,
-			list : list,
-			insert : insert,
-			update : update,
-			remove : remove,
-			api : $('#api').val() || null,
-			rate : parseInt($('#rate').val(), 10) || 0,
+			name: name,
+			enabled: enabled,
+			list: list,
+			insert: insert,
+			update: update,
+			remove: remove,
+			hook: hook,
+			api: $('#api').val() || null,
+			rate: parseInt($('#rate').val(), 10) || 0,
 		};
-		if(editId) {
+		if (editId) {
 			packages.get(editId).save(data);
 		} else {
 			packages.create(data);
 		}
 		editId = false;
-		this.reset();
+		setTimeout(function(){
+			$('#packageForm')[0].reset();
+		}, 500);
 		return false;
+	});
+
+	$('#packageForm').on('reset', function(){
+		editor.setValue('');
 	});
 })(this);

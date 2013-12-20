@@ -2,7 +2,6 @@
 
 /* Start Sessions */
 
-session_save_path('caches');
 ini_set('session.gc_probability', 1);
 session_cache_limiter(false);
 session_start();
@@ -73,6 +72,10 @@ $app = new \Slim\Slim(array(
 /* Middlewares */
 
 $r = new Util($app);
+
+/* load hooks */
+
+$r->loadHooks();
 
 function API(){
 	$app = \Slim\Slim::getInstance();
@@ -153,19 +156,166 @@ $app->post('/login', function() use ($app, $config) {
 
 /* REST API Routes */
 
-$app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){
-	if(!$r->packageOK($package)) {
+$app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
+	$tableName = $r->genTableName($package, $name);
+	try {
+		if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
+		return $r->respond(400, 'BAD REQUEST', true);
+		}
+		$query = R::$f->begin()->select('*')->from($tableName);
+		$wheres = json_decode($app->request()->params('where'));
+		if(is_array($wheres)) {
+			$count = 0;
+			foreach ($wheres as $where) {
+				if($count === 0)
+					$query->where($where[0] . ' ' . $where[1] . ' ?');
+				else
+					$query->and($where[0] . ' ' . $where[1] . ' ?');
+				$query->put($where[2]);
+				$count++;
+			}
+		}
+		$orders = json_decode($app->request()->params('order'));
+		if(is_array($orders)) {
+			$order_by = [];
+			foreach ($orders as $order) {
+				if(!isset($order[1]))
+					$order[1] = 'asc';
+				$order_by[] = $order[0] . ' ' . $order[1];
+			}
+			$order_by = implode(',', $order_by);
+			$query->order_by($order_by);
+		}
+
+		$limits = json_decode($app->request()->params('limit'));
+		if(is_array($limits)) {
+			$query->limit(implode(', ', $limits));
+		} else if (is_array($config['default_sql_limit']) && $tableName !== 'managepackages') {
+			$query->limit(implode(', ', $config['default_sql_limit']));
+		}
+		$data = $query->get();
+	} catch (Exception $e) {
+		$data = R::exportAll(R::findAll($tableName));
+	}
+	$data = $r->unserialize($data);
+	$data = $r->fireHookIfExists($package, $name, 'afterGet', $data);
+	if($data === false)
+		return $r->respond(403, 'FORBIDDEN:HOOK', true);
+	return $r->respond(200, $data);
+});
+
+$app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
+	$tableName = $r->genTableName($package, $name);
+	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$listOfTables = R::inspect();
-	$data = array_filter($listOfTables, function($table) use ($package){
-		return substr($table,0,strlen($package)) == $package;
-	});
-	$data = array_map(function($table) use ($package){
-		return substr($table,strlen($package));
-	}, $data);
-	return $r->respond(200, array_values($data));
+	$data = R::findOne($tableName, 'id = ?', array($id));
+	if($data) {
+		$data = $r->unserialize(array($data->export()))[0];
+		$data = $r->fireHookIfExists($package, $name, 'afterGet', array($data))[0];
+		if($data === false)
+			return $r->respond(403, 'FORBIDDEN:HOOK', true);
+		return $r->respond(200, $data);
+	}
+	return $r->respond(404, 'NOT FOUND', true);
 });
+
+$app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name) use ($r, $app) {
+	$tableName = $r->genTableName($package, $name);
+	if(!$r->packageOK($package, 'insert') && $tableName !== 'managepackages') {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+	$request = json_decode($app->request()->getBody());
+	if(!is_array($request) && !is_object($request)) {
+		return $r->respond(400, 'MALFORMED DATA', true);
+	}
+	$request = (array) $request;
+	$data = R::dispense($tableName);
+	$request = $r->fireHookIfExists($package, $name, 'beforeInsert', $request);
+	if($request === false) {
+		return $r->respond(403, 'FORBIDDEN:HOOK', true);
+	}
+	$requestData = $r->serialize(array($request))[0];
+	foreach ($requestData as $key => $value) {
+		$data->{$key} = $value;
+	}
+	$id = R::store($data);
+	$sm = R::dispense('syncmeta');
+	$sm->timestamp = date('Y-m-d H:i:s');
+	$sm->tableName = $tableName;
+	$sm->type = 'insert';
+	$sm->row_id = $id;
+	R::store($sm);
+	$data = $r->unserialize(array($data->export()))[0];
+	if($data) {
+		$r->fireHookIfExists($package, $name, 'afterInsert', $data);
+		return $r->respond(201, $data);
+	}
+	return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
+});
+
+$app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r, $app) {
+	$tableName = $r->genTableName($package, $name);
+	if(!$r->packageOK($package, 'update') && $tableName !== 'managepackages') {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+	$request = json_decode($app->request()->getBody());
+	if(!is_array($request) && !is_object($request)) {
+		return $r->respond(400, 'MALFORMED DATA', true);
+	}
+	$request = (array) $request;
+	$data = R::findOne($tableName, 'id = ?', array($id));
+	if($data) {
+		$request = $r->fireHookIfExists($package, $name, 'beforeUpdate', $request, $data);
+		if($request === false) {
+			return $r->respond(403, 'FORBIDDEN:HOOK', true);
+		}
+		$requestData = $r->serialize(array($request))[0];
+		foreach ($requestData as $key => $value) {
+			$data->{$key} = $value;
+		}
+		R::store($data);
+		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
+		if($existingSyncMeta) {
+			$existingSyncMeta->type = 'update';
+			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
+			R::store($existingSyncMeta);
+		}
+		$data = $r->unserialize(array($data->export()));
+		$data = array_shift($data);
+		if($data) {
+			$r->fireHookIfExists($package, $name, 'afterUpdate', $data);
+			return $r->respond(200, $data);
+		}
+		return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
+	}
+	return $r->respond(404, 'NOT FOUND', true);
+});
+
+$app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
+	$tableName = $r->genTableName($package, $name);
+	if(!$r->packageOK($package ,'remove') && $tableName !== 'managepackages') {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+	$data = R::findOne($tableName, 'id = ?', array($id));
+	if($data) {
+		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
+		if($existingSyncMeta) {
+			$existingSyncMeta->type = 'remove';
+			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
+			R::store($existingSyncMeta);
+		}
+		if($r->fireHookIfExists($package, $name, 'beforeRemove', $r->unserialize(array($data->export()))[0])) {
+			R::trash($data);
+			$r->fireHookIfExists($package, $name, 'afterRemove', $r->unserialize(array($data->export()))[0]);
+			return $r->respond(200, 'DELETED');
+		}
+		return $r->respond(403, 'FORBIDDEN:HOOK', true);
+	}
+	return $r->respond(404, 'NOT FOUND', true);
+});
+
+/* utilities */
 
 $app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app) {
 	$tables = $app->request()->params('resources');
@@ -222,148 +372,21 @@ $app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app
 			);
 		}
 	}
-
 	return $r->respond(200, array('response' => $response, 'last_sync' => $new_last_sync));
 });
 
-$app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
-	$tableName = $r->genTableName($package, $name);
-	try {
-		if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
-		return $r->respond(400, 'BAD REQUEST', true);
-		}
-		$query = R::$f->begin()->select('*')->from($tableName);
-		$wheres = json_decode($app->request()->params('where'));
-		if(is_array($wheres)) {
-			$count = 0;
-			foreach ($wheres as $where) {
-				if($count === 0)
-					$query->where($where[0] . ' ' . $where[1] . ' ?');
-				else
-					$query->and($where[0] . ' ' . $where[1] . ' ?');
-				$query->put($where[2]);
-				$count++;
-			}
-		}
-		$orders = json_decode($app->request()->params('order'));
-		if(is_array($orders)) {
-			$order_by = [];
-			foreach ($orders as $order) {
-				if(!isset($order[1]))
-					$order[1] = 'asc';
-				$order_by[] = $order[0] . ' ' . $order[1];
-			}
-			$order_by = implode(',', $order_by);
-			$query->order_by($order_by);
-		}
-
-		$limits = json_decode($app->request()->params('limit'));
-		if(is_array($limits)) {
-			$query->limit(implode(', ', $limits));
-		} else if (is_array($config['default_sql_limit']) && $tableName !== 'managepackages') {
-			$query->limit(implode(', ', $config['default_sql_limit']));
-		}
-		$data = $query->get();
-	} catch (Exception $e) {
-		$data = R::exportAll(R::findAll($tableName));
-	}
-	$data = $r->unserialize($data);
-	return $r->respond(200, $data);
-});
-
-$app->get('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
-	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageOK($package, 'list') && $tableName !== 'managepackages') {
+$app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){
+	if(!$r->packageOK($package)) {
 		return $r->respond(400, 'BAD REQUEST', true);
 	}
-	$data = R::findOne($tableName, 'id = ?', array($id));
-	if($data) {
-		$data = $r->unserialize(array($data->export()))[0];
-		return $r->respond(200, $data);
-	}
-	return $r->respond(404, 'NOT FOUND', true);
-});
-
-$app->post('/:package/:name','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name) use ($r, $app) {
-	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageOK($package, 'insert') && $tableName !== 'managepackages') {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-	$request = json_decode($app->request()->getBody());
-	if(!is_array($request) && !is_object($request)) {
-		return $r->respond(400, 'MALFORMED DATA', true);
-	}
-	$request = (array) $request;
-	$data = R::dispense($tableName);
-	$requestData = $r->serialize(array($request))[0];
-	foreach ($requestData as $key => $value) {
-		$data->{$key} = $value;
-	}
-	$id = R::store($data);
-	$sm = R::dispense('syncmeta');
-	$sm->timestamp = date('Y-m-d H:i:s');
-	$sm->tableName = $tableName;
-	$sm->type = 'insert';
-	$sm->row_id = $id;
-	R::store($sm);
-	$data = $r->unserialize(array($data->export()));
-	$data = array_shift($data);
-	if($data) {
-		return $r->respond(201, $data);
-	}
-	return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
-});
-
-$app->put('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r, $app) {
-	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageOK($package, 'update') && $tableName !== 'managepackages') {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-	$request = json_decode($app->request()->getBody());
-	if(!is_array($request) && !is_object($request)) {
-		return $r->respond(400, 'MALFORMED DATA', true);
-	}
-	$request = (array) $request;
-	$data = R::findOne($tableName, 'id = ?', array($id));
-	if($data) {
-		$requestData = $r->serialize(array($request))[0];
-		foreach ($requestData as $key => $value) {
-			$data->{$key} = $value;
-		}
-		R::store($data);
-		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
-		if($existingSyncMeta) {
-			$existingSyncMeta->type = 'update';
-			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
-			R::store($existingSyncMeta);
-		}
-		$data = $r->unserialize(array($data->export()));
-		$data = array_shift($data);
-		if($data) {
-			return $r->respond(200, $data);
-		}
-		return $r->respond(500, 'ERROR WHILE INSERTING DATA', true);
-	}
-	return $r->respond(404, 'NOT FOUND', true);
-});
-
-$app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function ($package, $name, $id) use ($r) {
-	$tableName = $r->genTableName($package, $name);
-	if(!$r->packageOK($package ,'remove') && $tableName !== 'managepackages') {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-	$data = R::findOne($tableName, 'id = ?', array($id));
-	if($data) {
-		$existingSyncMeta = R::findOne('syncmeta', 'where row_id = ? and tableName = ?', array($id, $tableName));
-		if($existingSyncMeta) {
-			$existingSyncMeta->type = 'remove';
-			$existingSyncMeta->timestamp = date('Y-m-d H:i:s');
-			R::store($existingSyncMeta);
-		}
-		R::trash($data);
-		return $r->respond(200, 'DELETED');
-	}
-	return $r->respond(404, 'NOT FOUND', true);
+	$listOfTables = R::inspect();
+	$data = array_filter($listOfTables, function($table) use ($package){
+		return substr($table,0,strlen($package)) == $package;
+	});
+	$data = array_map(function($table) use ($package){
+		return substr($table,strlen($package));
+	}, $data);
+	return $r->respond(200, array_values($data));
 });
 
 /* Handle Options Route */

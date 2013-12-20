@@ -5,42 +5,8 @@
 	<title>API Gateway</title>
 	<link rel="stylesheet" href="css/bootstrap.css">
 	<link rel="stylesheet" href="css/font-awesome.css">
+	<link rel="stylesheet" href="css/manage.css">
 </head>
-<style>
-	.fa-check {
-		color : darkgreen;
-	}
-	.fa-times {
-		color : red;
-	}
-	.centered {
-		text-align: center;
-	}
-	.right {
-		text-align: right;
-	}
-	.radio label, .checkbox label {
-		width: 75px;
-		display: inline-block;
-	}
-	.acl-wrapper {
-		padding: 8px;
-		padding-top: 0px;
-	}
-	.acl-label {
-		padding-left: 8px;
-	}
-	@media (min-width: 768px) {
-		.form-inline .form-group {
-			max-width: 25%;
-			vertical-align: top;
-		}
-	}
-	.muted {
-		font-size: 0.8em;
-		color: #b2b2b2;
-	}
-</style>
 <body>
 	<br>
 	<br>
@@ -72,7 +38,7 @@
 		<br>
 		<h3>Manage Package</h3>
 		<hr>
-		<form class="form-inline" id="form" role="form" method="post">
+		<form class="form-inline" id="packageForm" role="form" method="post">
 			<div class="form-group">
 				<label for="name">Package Name</label>
 				<input type="text" class="form-control" id="name" name="name" required placeholder="Enter Package Name">
@@ -115,9 +81,16 @@
 					</div>
 				</div>
 			</div>
+			<div class="resources">
+				<label for="hooks">Hooks</label>
+				<div id="hooks" title="Hooks"></div>
+				<br>
+				<button type="button" id="genHooks" class="btn btn-primary">Generate Hooks</button>
+			</div>
 			<hr>
 			<div class="form-group">
 				<button type="submit" class="btn btn-primary">Save</button>
+				<button type="reset" id="resetForm" class="btn btn-secondary">Reset</button>
 			</div>
 		</form>
 
@@ -177,6 +150,7 @@
 			</tr>
 		{{/each}}
 	</template>
+	<script src="js/lib/ace/ace.js"></script>
 	<script src="js/lib/jquery.js"></script>
 	<script src="js/lib/handlebars.js"></script>
 	<script src="js/lib/lodash.js"></script>
