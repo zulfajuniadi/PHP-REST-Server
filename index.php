@@ -124,6 +124,66 @@ $app->get('/','API', function() use ($r){
 	$r->respond(200, 'OK');
 });
 
+/* utilities */
+
+$app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app) {
+	$tables = $app->request()->params('resources');
+	$last_sync = $app->request()->params('last_sync');
+	$new_last_sync = date('Y-m-d H:i:s');
+
+	if(!$r->packageOK($package) || !$tables || !is_array($tables) || !$last_sync) {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+
+	$response = [];
+
+	$tables = array_map(function($table) use ($package) {
+		return $package . $table;
+	}, $tables);
+
+	foreach ($tables as $table) {
+		$resource = substr($table, strlen($package));
+		$response[$resource]['insert'] = array();
+		$response[$resource]['update'] = array();
+		$response[$resource]['remove'] = array();
+		try {
+			$queryData = R::$f->begin()
+				->select('*')
+				->from('syncmeta')
+				->left_join($table . ' on ' . $table . '.id = syncmeta.row_id')
+				->where('syncmeta.tableName = ? and syncmeta.timestamp > ?')
+				->order_by('syncmeta.type')
+				->put($table)
+				->put($last_sync)
+				->get();
+		} catch (Exception $e) {
+			$queryData = array();
+		}
+
+		foreach ($queryData as $row) {
+			$data = array();
+			$meta = array();
+			foreach ($row as $column => $value) {
+				if($column !== 'id' || $column !== 'type') {
+					if ($column === 'row_id') {
+						$data['id'] = (int) $value;
+					} else if (in_array($column, array('timestamp','tableName', 'type'))) {
+						$meta[$column] = $value;
+					} else {
+						$data[$column] = $value;
+					}
+				}
+			}
+			$oper = $row['type'];
+			$response[$resource][$oper][] = array(
+				'meta' => $meta,
+				'data' => $data
+			);
+		}
+	}
+	return $r->respond(200, array('response' => $response, 'last_sync' => $new_last_sync));
+});
+
 /* Management Routes */
 
 $app->get('/manage', 'AUTH', function() use ($app) {
@@ -155,6 +215,20 @@ $app->post('/login', function() use ($app, $config) {
 });
 
 /* REST API Routes */
+
+$app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){
+	if(!$r->packageOK($package)) {
+		return $r->respond(400, 'BAD REQUEST', true);
+	}
+	$listOfTables = R::inspect();
+	$data = array_filter($listOfTables, function($table) use ($package){
+		return substr($table,0,strlen($package)) == $package;
+	});
+	$data = array_map(function($table) use ($package){
+		return substr($table,strlen($package));
+	}, $data);
+	return $r->respond(200, array_values($data));
+});
 
 $app->get('/:package/:name','API','CHECKTOKEN','RATELIMITER', function ($package, $name) use ($r, $app, $config) {
 	$tableName = $r->genTableName($package, $name);
@@ -313,80 +387,6 @@ $app->delete('/:package/:name/:id','API','CHECKTOKEN', 'RATELIMITER', function (
 		return $r->respond(403, 'FORBIDDEN:HOOK', true);
 	}
 	return $r->respond(404, 'NOT FOUND', true);
-});
-
-/* utilities */
-
-$app->get('/:package/_sync','API','RATELIMITER', function($package) use($r, $app) {
-	$tables = $app->request()->params('resources');
-	$last_sync = $app->request()->params('last_sync');
-	$new_last_sync = date('Y-m-d H:i:s');
-
-	if(!$r->packageOK($package) || !$tables || !is_array($tables) || !$last_sync) {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-
-	$response = [];
-
-	$tables = array_map(function($table) use ($package) {
-		return $package . $table;
-	}, $tables);
-
-	foreach ($tables as $table) {
-		$resource = substr($table, strlen($package));
-		$response[$resource]['insert'] = array();
-		$response[$resource]['update'] = array();
-		$response[$resource]['remove'] = array();
-		try {
-			$queryData = R::$f->begin()
-				->select('*')
-				->from('syncmeta')
-				->left_join($table . ' on ' . $table . '.id = syncmeta.row_id')
-				->where('syncmeta.tableName = ? and syncmeta.timestamp > ?')
-				->order_by('syncmeta.type')
-				->put($table)
-				->put($last_sync)
-				->get();
-		} catch (Exception $e) {
-			$queryData = array();
-		}
-
-		foreach ($queryData as $row) {
-			$data = array();
-			$meta = array();
-			foreach ($row as $column => $value) {
-				if($column !== 'id' || $column !== 'type') {
-					if ($column === 'row_id') {
-						$data['id'] = (int) $value;
-					} else if (in_array($column, array('timestamp','tableName', 'type'))) {
-						$meta[$column] = $value;
-					} else {
-						$data[$column] = $value;
-					}
-				}
-			}
-			$oper = $row['type'];
-			$response[$resource][$oper][] = array(
-				'meta' => $meta,
-				'data' => $data
-			);
-		}
-	}
-	return $r->respond(200, array('response' => $response, 'last_sync' => $new_last_sync));
-});
-
-$app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){
-	if(!$r->packageOK($package)) {
-		return $r->respond(400, 'BAD REQUEST', true);
-	}
-	$listOfTables = R::inspect();
-	$data = array_filter($listOfTables, function($table) use ($package){
-		return substr($table,0,strlen($package)) == $package;
-	});
-	$data = array_map(function($table) use ($package){
-		return substr($table,strlen($package));
-	}, $data);
-	return $r->respond(200, array_values($data));
 });
 
 /* Handle Options Route */
