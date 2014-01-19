@@ -214,6 +214,15 @@ $app->post('/login', function() use ($app, $config) {
 	$app->redirect( ROOT_URI . '/login');
 });
 
+/* include predefined routes */
+
+$path = array_filter(explode('/', $app->request->getPath()));
+$path = array_shift($path);
+$routesFilePath = 'routes' . DIRECTORY_SEPARATOR . $path . '.php';
+
+if(file_exists($routesFilePath))
+	require_once($routesFilePath);
+
 /* REST API Routes */
 
 $app->get('/:package','API','CHECKTOKEN','RATELIMITER', function($package) use ($r){

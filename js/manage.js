@@ -7,13 +7,32 @@
 		return options.inverse();
 	});
 
-	var editor;
-    editor = ace.edit("hooks");
-    editor.setTheme("ace/theme/github");
-    editor.getSession().setMode("ace/mode/php");
-	var updateEditor = function(packageName) {
-		var template = "<?php\n\n$r = Util::getInstance(); // Utils class utils.php\n$app = \\Slim\\Slim::getInstance(); // slim (Framework) instance: http://www.slimframework.com/\nuse RedBean_Facade as R; // redbean (database ORM) instance : http://www.redbeanphp.com/\n\n/* called after getting the data from the database and just before sending it to the user */\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterGet', function($data) {\n\t// do something with the data\n\treturn $data;\n\t// send it to the user\n});\n\n/* called before the data is inserted into the database. return false to deny insertion */\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeInsert', function($data) {\n\t// do something with the data\n\treturn $data;\n\t// send it to the user\n});\n\n/* called after the data has been inserted */\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterInsert', function($data) {\n\t// do something with the data\n\t// data already inserted, nothing to return\n});\n\n/* called before the data is updated inside database. return false to deny update */\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeUpdate', function($newData, $oldData) {\n\t// do something with the data\n\treturn $newData;\n\t// send it to the user\n});\n\n/* called after the data has been updated */\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterUpdate', function($newData, $oldData) {\n\t// do something with the data\n\t// data already updated, nothing to return\n});\n\n/* called before the data removed from the database. return true to allow deletion, return false to deny */\n$r->registerHook('"+ packageName +"', 'resourceName', 'beforeDelete', function($data) {\n\t// do something with the data\n\treturn true;\n\t// return true to allow the system to delete or false to return a 403:forbidden error;\n});\n\n/* called after the data has been removed from the database */\n$r->registerHook('"+ packageName +"', 'resourceName', 'afterDelete', function($data) {\n\t// do something with the data\n\t// data already deleted, nothin to return\n});"
-		editor.setValue(template);
+	var hooksEditor;
+    hooksEditor = ace.edit("hooks");
+    hooksEditor.setOptions({
+    	minLines: 30,
+	    maxLines: Infinity
+	});
+    hooksEditor.setTheme("ace/theme/github");
+    hooksEditor.getSession().setMode("ace/mode/php");
+
+	var routesEditor;
+    routesEditor = ace.edit("routes");
+    routesEditor.setOptions({
+    	minLines: 30,
+	    maxLines: Infinity
+	});
+    routesEditor.setTheme("ace/theme/github");
+    routesEditor.getSession().setMode("ace/mode/php");
+
+	var updateHooksEditor = function(packageName) {
+		var template = "<?php\n\n$r = Util::getInstance(); // Utils class utils.php\n$app = \\Slim\\Slim::getInstance(); // slim (Framework) instance: http://www.slimframework.com/\nuse RedBean_Facade as R; // redbean (database ORM) instance : http://www.redbeanphp.com/\n\n// called after getting the data from the database and just before sending it to the user\n$r->registerHook('" + packageName + "', 'resourceName', 'afterGet', function($data) {\n	// do something with the data\n	return $data;\n	// send it to the user\n});\n\n// called before the data is inserted into the database. return false to deny insertion\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeInsert', function($data) {\n	// do something with the data\n	return $data;\n	// send it to the user\n});\n\n// called after the data has been inserted\n$r->registerHook('" + packageName + "', 'resourceName', 'afterInsert', function($data) {\n	// do something with the data\n	// data already inserted, nothing to return\n});\n\n// called before the data is updated inside database. return false to deny update\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeUpdate', function($newData, $oldData) {\n	// do something with the data\n	return $newData;\n	// send it to the user\n});\n\n// called after the data has been updated\n$r->registerHook('" + packageName + "', 'resourceName', 'afterUpdate', function($newData, $oldData) {\n	// do something with the data\n	// data already updated, nothing to return\n});\n\n// called before the data removed from the database. return true to allow deletion, return false to deny\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeDelete', function($data) {\n	// do something with the data\n	return true;\n	// return true to allow the system to delete or false to return a 403:forbidden error;\n});\n\n// called after the data has been removed from the database\n$r->registerHook('" + packageName + "', 'resourceName', 'afterDelete', function($data) {\n	// do something with the data\n	// data already deleted, nothin to return\n});"
+		hooksEditor.setValue(template);
+	}
+
+	var updateRoutesEditor = function(packageName) {
+		var template = "<?php\n\n$r = Util::getInstance(); // Utils class utils.php\n$app = \\Slim\\Slim::getInstance(); // slim (Framework) instance: http://www.slimframework.com/\nuse RedBean_Facade as R; // redbean (database ORM) instance : http://www.redbeanphp.com/ zulfa\n\n// Built-in middlewares\n// API : Required for json response, otherwise do not use $r->respond\n// CHECKTOKEN : User required to have the valid auth token header\n// RATELIMITER : Rate Limits are enforced\n\n$app->get('/" + packageName + "/testnewroute', 'API', 'CHECKTOKEN', 'RATELIMITER', function() use ($r) {\n    $r->respond(200, array('response' => 'route is alive!'));\n});\n\n"
+		routesEditor.setValue(template);
 	}
 
 	var packageModel = Backbone.Model.extend({
@@ -60,7 +79,8 @@
 					editId = id;
 					var model = this.collection.get(id);
 					$('#name').val(model.attributes.name);
-					editor.setValue(model.attributes.hook);
+					hooksEditor.setValue(model.attributes.hook);
+					routesEditor.setValue(model.attributes.routes);
 					$('#api').val(model.attributes.api);
 					$('#rate').val(model.attributes.rate);
 					if (model.attributes.enabled === 'true') {
@@ -125,12 +145,28 @@
 			alert('Input a package name first');
 			$('#name').focus();
 		} else {
-			if(editor.getValue().length > 0) {
+			if(hooksEditor.getValue().length > 0) {
 				if(confirm('Are you sure you want to generate the hooks? It will override the existing one.')) {
-					updateEditor(val);
+					updateHooksEditor(val);
 				}
 			} else {
-				updateEditor(val);
+				updateHooksEditor(val);
+			}
+		}
+	});
+
+	$('#genRoutes').click(function(){
+		var val = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+		if(val.length === 0) {
+			alert('Input a package name first');
+			$('#name').focus();
+		} else {
+			if(routesEditor.getValue().length > 0) {
+				if(confirm('Are you sure you want to generate the hooks? It will override the existing one.')) {
+					updateRoutesEditor(val);
+				}
+			} else {
+				updateRoutesEditor(val);
 			}
 		}
 	});
@@ -155,7 +191,8 @@
 		var insert = 'false';
 		var update = 'false';
 		var remove = 'false';
-		var hook = editor.getValue() || null;
+		var hook = hooksEditor.getValue() || null;
+		var routes = routesEditor.getValue() || null;
 		var name = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
 		if ($('#enabled').is(':checked'))
 			enabled = 'true';
@@ -175,6 +212,7 @@
 			update: update,
 			remove: remove,
 			hook: hook,
+			routes: routes,
 			api: $('#api').val() || null,
 			rate: parseInt($('#rate').val(), 10) || 0,
 		};
@@ -191,6 +229,15 @@
 	});
 
 	$('#packageForm').on('reset', function(){
-		editor.setValue('');
+		hooksEditor.setValue('');
+	});
+
+	$('#packageForm').on('reset', function(){
+		routesEditor.setValue('');
+	});
+
+	$('.nav-tabs a').click(function (e) {
+	  e.preventDefault()
+	  $(this).tab('show')
 	});
 })(this);

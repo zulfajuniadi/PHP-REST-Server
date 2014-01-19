@@ -22,15 +22,15 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 			include_once('lint.php');
 			var_dump(\Lint\Lint::checkSourceCode($data['hook'], false));
 		} catch (Exception $e) {
-			$data['hook'] = null;
+			$data['hook'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Hook Hidden.\n\n". str_replace('<?php', '', $data['hook']) . '*/';
 		}
 	}
-	if(isset($data['hook'])) {
+	if(isset($data['routes'])) {
 		try {
 			include_once('lint.php');
-			var_dump(\Lint\Lint::checkSourceCode($data['hook'], false));
+			var_dump(\Lint\Lint::checkSourceCode($data['routes'], false));
 		} catch (Exception $e) {
-			$data['hook'] = null;
+			$data['routes'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Routes Hidden.\n\n". str_replace('<?php', '', $data['routes']) . '*/';
 		}
 	}
 	return $data;
@@ -44,7 +44,7 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 			include_once('lint.php');
 			var_dump(\Lint\Lint::checkSourceCode($newData['hook'], false));
 		} catch (Exception $e) {
-			$newData['hook'] = $currentData['hook'];
+			$newData['hook'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Hook Hidden.\n\n". str_replace('<?php', '', $newData['hook']) . '*/';
 		}
 	}
 	if(isset($newData['routes'])) {
@@ -52,7 +52,7 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 			include_once('lint.php');
 			var_dump(\Lint\Lint::checkSourceCode($newData['routes'], false));
 		} catch (Exception $e) {
-			$newData['routes'] = $currentData['routes'];
+			$newData['routes'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Routes Hidden.\n\n". str_replace('<?php', '', $newData['routes']) . '*/';
 		}
 	}
 	return $newData;
@@ -71,7 +71,7 @@ $r->registerHook('manage', 'packages', 'afterInsert', function($data) {
 		if(isset($data['hook']))
 			file_put_contents($hookFileName, $data['hook']);
 		if(isset($data['routes']))
-			file_put_contents($hookFileName, $data['routes']);
+			file_put_contents($routeFileName, $data['routes']);
 	}
 });
 
@@ -88,7 +88,7 @@ $r->registerHook('manage', 'packages', 'afterUpdate', function($data) {
 		if(isset($data['hook']))
 			file_put_contents($hookFileName, $data['hook']);
 		if(isset($data['routes']))
-			file_put_contents($hookFileName, $data['routes']);
+			file_put_contents($routeFileName, $data['routes']);
 	}
 });
 
@@ -109,7 +109,7 @@ $r->registerHook('manage', 'packages', 'afterRemove', function($data) {
 	}
 	$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
 	if(file_exists($routeFileName)) {
-		unlink($hookFileName);
+		unlink($routeFileName);
 	}
 
 	/* remove tables */
