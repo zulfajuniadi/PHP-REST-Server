@@ -1,6 +1,7 @@
 PHP REST Server
 ===============
 
+You can read the introduction on my [blog](http://zulfait.blogspot.com/2014/01/php-rest-server.html).
 ##Features
 
 1. Automatically generated resources (tables and table structure) based on incomming data.
@@ -15,9 +16,9 @@ PHP REST Server
 ##Installation
 
 1. Install [Composer](http://getcomposer.org/doc/00-intro.md#installation-nix).
-1. Download and extract / clone this repo into your htdocs directory.
-1. In the directory run ``composer install --prefer-dist --no-dev``.
-1. Change the configs in config.php.default and rename it to config.php.
+1. Create a new project by running: ```composer create-project zulfajuniadi/php-rest-server your_directory```
+1. Alternatively you can download and extract / clone this repo into your htdocs directory then run ``composer install --prefer-dist --no-dev``
+2. Change the configs in config.php.default and rename it to config.php.
 1. Go To: http://yourapiserver/ to make sure everything is ok. The response should be something like this : ``{"error":false,"data":"OK","status":200}``.
 
 ##Usage
