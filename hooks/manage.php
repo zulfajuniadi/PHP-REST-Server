@@ -17,7 +17,15 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 	if($existing) {
 		return false;
 	}
-	if($data['hook']) {
+	if(isset($data['hook'])) {
+		try {
+			include_once('lint.php');
+			var_dump(\Lint\Lint::checkSourceCode($data['hook'], false));
+		} catch (Exception $e) {
+			$data['hook'] = null;
+		}
+	}
+	if(isset($data['hook'])) {
 		try {
 			include_once('lint.php');
 			var_dump(\Lint\Lint::checkSourceCode($data['hook'], false));
@@ -31,7 +39,7 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $currentData) {
 	if(!$_SESSION['authenticated'])
 		return false;
-	if($newData['hook']) {
+	if(isset($newData['hook'])) {
 		try {
 			include_once('lint.php');
 			var_dump(\Lint\Lint::checkSourceCode($newData['hook'], false));
@@ -39,26 +47,48 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 			$newData['hook'] = $currentData['hook'];
 		}
 	}
+	if(isset($newData['routes'])) {
+		try {
+			include_once('lint.php');
+			var_dump(\Lint\Lint::checkSourceCode($newData['routes'], false));
+		} catch (Exception $e) {
+			$newData['routes'] = $currentData['routes'];
+		}
+	}
 	return $newData;
 });
 
 $r->registerHook('manage', 'packages', 'afterInsert', function($data) {
-	if($data['hook'] && $data['name']) {
+	if($data['name']) {
 		$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
 		if(!file_exists($hookFileName)) {
 			touch($hookFileName);
 		}
-		file_put_contents($hookFileName, $data['hook']);
+		$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		if(!file_exists($routeFileName)) {
+			touch($routeFileName);
+		}
+		if(isset($data['hook']))
+			file_put_contents($hookFileName, $data['hook']);
+		if(isset($data['routes']))
+			file_put_contents($hookFileName, $data['routes']);
 	}
 });
 
 $r->registerHook('manage', 'packages', 'afterUpdate', function($data) {
-	if($data['hook'] && $data['name']) {
+	if($data['name']) {
 		$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
 		if(!file_exists($hookFileName)) {
 			touch($hookFileName);
 		}
-		file_put_contents($hookFileName, $data['hook']);
+		$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		if(!file_exists($routeFileName)) {
+			touch($routeFileName);
+		}
+		if(isset($data['hook']))
+			file_put_contents($hookFileName, $data['hook']);
+		if(isset($data['routes']))
+			file_put_contents($hookFileName, $data['routes']);
 	}
 });
 
@@ -75,6 +105,10 @@ $r->registerHook('manage', 'packages', 'afterRemove', function($data) {
 
 	$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $package . '.php';
 	if(file_exists($hookFileName)) {
+		unlink($hookFileName);
+	}
+	$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+	if(file_exists($routeFileName)) {
 		unlink($hookFileName);
 	}
 
