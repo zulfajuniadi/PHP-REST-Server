@@ -85,6 +85,7 @@ function API(){
 	$app->response->headers->set('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,DELETE,OPTIONS');
 	$app->response->headers->set('Access-Control-Allow-Headers', 'Auth-Token,Content-Type');
 	$app->response->headers->set('Access-Control-Allow-Origin', '*');
+	$app->response->headers->set('Access-Control-Allow-Credentials', 'true');
 }
 
 function RATELIMITER() {
