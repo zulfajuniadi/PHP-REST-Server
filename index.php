@@ -86,8 +86,18 @@ function API(){
 	$app->response->headers->set('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,DELETE,OPTIONS');
 	$app->response->headers->set('Access-Control-Allow-Headers', 'Auth-Token,Content-Type');
 	$app->response->headers->set('Access-Control-Allow-Credentials', 'true');
-	$http_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
-	$app->response->headers->set("Access-Control-Allow-Origin", "http://localhost:8000/");
+	$uri = array_values(array_filter(explode('/', $app->request->getResourceUri())));
+	$package = R::findOne('managepackages', ' name = ?', array($uri[0]));
+	if($package) {
+		$origin = $package->origin;
+
+		if(!$origin) {
+			$origin = 'http://localhost';
+		}
+	} else {
+		$origin = 'http://localhost';
+	}
+	$app->response->headers->set("Access-Control-Allow-Origin", $origin);
 }
 
 function RATELIMITER() {

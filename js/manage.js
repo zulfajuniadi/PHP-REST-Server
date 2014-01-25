@@ -106,6 +106,7 @@
 					hooksEditor.setValue(model.attributes.hook);
 					routesEditor.setValue(model.attributes.routes);
 					$('#api').val(model.attributes.api);
+					$('#origin').val(model.attributes.origin);
 					$('#rate').val(model.attributes.rate);
 					if (model.attributes.enabled === 'true') {
 						$("#enabled").prop("checked", true);
@@ -224,6 +225,7 @@
 		var hook = hooksEditor.getValue() || null;
 		var routes = routesEditor.getValue() || null;
 		var name = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+		var origin = $('#origin').val();
 		if ($('#enabled').is(':checked'))
 			enabled = 'true';
 		if ($('#list').is(':checked'))
@@ -236,6 +238,7 @@
 			remove = 'true';
 		var data = {
 			name: name,
+			origin: origin,
 			enabled: enabled,
 			list: list,
 			insert: insert,

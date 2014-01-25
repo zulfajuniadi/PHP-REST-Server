@@ -27,6 +27,9 @@
 		vertical-align: top;
 	}
 }
+.form-inline .form-group {
+	margin-bottom: 16px!important;
+}
 .muted {
 	font-size: 0.8em;
 	color: #b2b2b2;
