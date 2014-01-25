@@ -5,7 +5,6 @@
 ini_set('session.gc_probability', 1);
 session_cache_limiter(false);
 session_start();
-session_write_close();
 
 /* define root uri */
 
@@ -85,6 +84,10 @@ function API(){
 	$app = \Slim\Slim::getInstance();
 	$app->view(new \JsonApiView());
 	$app->add(new \JsonApiMiddleware());
+	$app->response->headers->set('Content-Type', 'application/json');
+	$app->response->headers->set('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,DELETE,OPTIONS');
+	$app->response->headers->set('Access-Control-Allow-Headers', 'Auth-Token,Content-Type');
+	$app->response->headers->set('Access-Control-Allow-Origin', '*');
 }
 
 function RATELIMITER() {
@@ -199,9 +202,7 @@ $app->get('/login', function() use ($app) {
 });
 
 $app->get('/logout', function() use ($app) {
-	session_start();
 	session_destroy();
-	session_write_close();
 	return $app->redirect( ROOT_URI . "/login");
 });
 
@@ -209,10 +210,8 @@ $app->post('/login', function() use ($app, $config) {
 	$username = $app->request->params('username');
 	$password = $app->request->params('password');
 	if($username === $config['username'] && $password === $config['password']) {
-		session_start();
 		$_SESSION['authenticated'] = true;
 		$_SESSION['expires'] = time() + $config['session_expiry'];
-		session_write_close();
 		return $app->redirect( ROOT_URI . '/manage');
 	}
 	$app->redirect( ROOT_URI . '/login');

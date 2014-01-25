@@ -91,14 +91,12 @@ class Util
 
 	public function checkLimit($package) {
 		$thisHour = floor(time() / 60 / 60);
-		session_start();
 		if(isset($_SESSION['requestHour']) && $_SESSION['requestHour'] == $thisHour) {
 			$_SESSION['requestCount'] ++;
 		} else {
 			$_SESSION['requestHour'] = $thisHour;
 			$_SESSION['requestCount'] = 1;
 		}
-		session_write_close();
 		$package = R::findOne('managepackages', ' name = ?', array($this->cleanup($package)));
 		$this->app->response()->header('Api-Utilization', $_SESSION['requestCount']);
 		$this->app->response()->header('Api-Limit', $package->rate);
