@@ -87,7 +87,7 @@ function API(){
 	$app->response->headers->set('Access-Control-Allow-Headers', 'Auth-Token,Content-Type');
 	$app->response->headers->set('Access-Control-Allow-Credentials', 'true');
 	$http_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
-	$app->response->headers->set("Access-Control-Allow-Origin: $http_origin");
+	$app->response->headers->set("Access-Control-Allow-Origin", "$http_origin");
 }
 
 function RATELIMITER() {
