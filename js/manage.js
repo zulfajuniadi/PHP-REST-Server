@@ -7,6 +7,12 @@
 		return options.inverse();
 	});
 
+	Mousetrap.bind(['command+s', 'ctrl+s'], function(e) {
+		e.preventDefault();
+		$('#packageForm').trigger('submit');
+	    return false;
+	});
+
 	var hooksEditor;
     hooksEditor = ace.edit("hooks");
     hooksEditor.setOptions({
@@ -24,6 +30,22 @@
 	});
     routesEditor.setTheme("ace/theme/github");
     routesEditor.getSession().setMode("ace/mode/php");
+
+    hooksEditor.commands.addCommand({
+	    name: 'Save',
+	    bindKey: {win: 'Ctrl-S',  mac: 'Command-S'},
+	    exec: function(editor) {
+	        $('#packageForm').trigger('submit');
+	    },
+	});
+
+    routesEditor.commands.addCommand({
+	    name: 'Save',
+	    bindKey: {win: 'Ctrl-S',  mac: 'Command-S'},
+	    exec: function(editor) {
+	        $('#packageForm').trigger('submit');
+	    },
+	});
 
 	var updateHooksEditor = function(packageName) {
 		var template = "<?php\n\n$r = Util::getInstance(); // Utils class utils.php\n$app = \\Slim\\Slim::getInstance(); // slim (Framework) instance: http://www.slimframework.com/\nuse RedBean_Facade as R; // redbean (database ORM) instance : http://www.redbeanphp.com/\n\n// called after getting the data from the database and just before sending it to the user\n$r->registerHook('" + packageName + "', 'resourceName', 'afterGet', function($data) {\n	// do something with the data\n	return $data;\n	// send it to the user\n});\n\n// called before the data is inserted into the database. return false to deny insertion\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeInsert', function($data) {\n	// do something with the data\n	return $data;\n	// send it to the user\n});\n\n// called after the data has been inserted\n$r->registerHook('" + packageName + "', 'resourceName', 'afterInsert', function($data) {\n	// do something with the data\n	// data already inserted, nothing to return\n});\n\n// called before the data is updated inside database. return false to deny update\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeUpdate', function($newData, $oldData) {\n	// do something with the data\n	return $newData;\n	// send it to the user\n});\n\n// called after the data has been updated\n$r->registerHook('" + packageName + "', 'resourceName', 'afterUpdate', function($newData, $oldData) {\n	// do something with the data\n	// data already updated, nothing to return\n});\n\n// called before the data removed from the database. return true to allow deletion, return false to deny\n$r->registerHook('" + packageName + "', 'resourceName', 'beforeDelete', function($data) {\n	// do something with the data\n	return true;\n	// return true to allow the system to delete or false to return a 403:forbidden error;\n});\n\n// called after the data has been removed from the database\n$r->registerHook('" + packageName + "', 'resourceName', 'afterDelete', function($data) {\n	// do something with the data\n	// data already deleted, nothin to return\n});"
@@ -220,19 +242,21 @@
 			packages.get(editId).save(data);
 		} else {
 			packages.create(data);
+			setTimeout(function(){
+				$('#packageForm')[0].reset();
+			}, 500);
 		}
-		editId = false;
-		setTimeout(function(){
-			$('#packageForm')[0].reset();
-		}, 500);
+    	$.notify('Saved', 'success');
 		return false;
 	});
 
 	$('#packageForm').on('reset', function(){
+		editId = false;
 		hooksEditor.setValue('');
 	});
 
 	$('#packageForm').on('reset', function(){
+		editId = false;
 		routesEditor.setValue('');
 	});
 
