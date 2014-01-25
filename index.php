@@ -77,6 +77,16 @@ $r = new Util($app);
 
 $r->loadHooks();
 
+function GET_REQUEST() {
+	$ssl = (!empty($s['HTTPS']) && $s['HTTPS'] == 'on') ? true:false;
+    $sp = strtolower($s['SERVER_PROTOCOL']);
+    $protocol = substr($sp, 0, strpos($sp, '/')) . (($ssl) ? 's' : '');
+    $port = $s['SERVER_PORT'];
+    $port = ((!$ssl && $port=='80') || ($ssl && $port=='443')) ? '' : ':'.$port;
+    $host = isset($s['HTTP_X_FORWARDED_HOST']) ? $s['HTTP_X_FORWARDED_HOST'] : isset($s['HTTP_HOST']) ? $s['HTTP_HOST'] : $s['SERVER_NAME'];
+    return $protocol . '://' . $host;
+}
+
 function API(){
 	$app = \Slim\Slim::getInstance();
 	$app->view(new \JsonApiView());
@@ -84,7 +94,7 @@ function API(){
 	$app->response->headers->set('Content-Type', 'application/json');
 	$app->response->headers->set('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,DELETE,OPTIONS');
 	$app->response->headers->set('Access-Control-Allow-Headers', 'Auth-Token,Content-Type');
-	$app->response->headers->set('Access-Control-Allow-Origin', '*');
+	$app->response->headers->set('Access-Control-Allow-Origin', GET_REQUEST());
 	$app->response->headers->set('Access-Control-Allow-Credentials', 'true');
 }
 
