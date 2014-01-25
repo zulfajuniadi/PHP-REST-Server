@@ -1,9 +1,6 @@
 <?php
 
 /* Start Sessions */
-
-ini_set('session.gc_probability', 1);
-session_cache_limiter(false);
 session_start();
 
 /* define root uri */
