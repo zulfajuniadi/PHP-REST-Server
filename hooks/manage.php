@@ -60,11 +60,11 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 
 $r->registerHook('manage', 'packages', 'afterInsert', function($data) {
 	if($data['name']) {
-		$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		$hookFileName = 'hooks' . DS . $data['name'] . '.php';
 		if(!file_exists($hookFileName)) {
 			touch($hookFileName);
 		}
-		$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		$routeFileName = 'routes' . DS . $data['name'] . '.php';
 		if(!file_exists($routeFileName)) {
 			touch($routeFileName);
 		}
@@ -77,11 +77,11 @@ $r->registerHook('manage', 'packages', 'afterInsert', function($data) {
 
 $r->registerHook('manage', 'packages', 'afterUpdate', function($data) {
 	if($data['name']) {
-		$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		$hookFileName = 'hooks' . DS . $data['name'] . '.php';
 		if(!file_exists($hookFileName)) {
 			touch($hookFileName);
 		}
-		$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+		$routeFileName = 'routes' . DS . $data['name'] . '.php';
 		if(!file_exists($routeFileName)) {
 			touch($routeFileName);
 		}
@@ -95,6 +95,7 @@ $r->registerHook('manage', 'packages', 'afterUpdate', function($data) {
 $r->registerHook('manage', 'packages', 'beforeRemove', function($data){
 	if(!$_SESSION['authenticated'])
 		return false;
+	return true;
 });
 
 $r->registerHook('manage', 'packages', 'afterRemove', function($data) {
@@ -103,11 +104,11 @@ $r->registerHook('manage', 'packages', 'afterRemove', function($data) {
 
 	/* remove hooks */
 
-	$hookFileName = 'hooks' . DIRECTORY_SEPARATOR . $package . '.php';
+	$hookFileName = 'hooks' . DS . $package . '.php';
 	if(file_exists($hookFileName)) {
 		unlink($hookFileName);
 	}
-	$routeFileName = 'routes' . DIRECTORY_SEPARATOR . $data['name'] . '.php';
+	$routeFileName = 'routes' . DS . $data['name'] . '.php';
 	if(file_exists($routeFileName)) {
 		unlink($routeFileName);
 	}

@@ -87,12 +87,14 @@
 				var id = $(e.currentTarget).data('id');
 				if (id) {
 					var model = this.collection.get(id);
-					if (confirm('Are you sure you want to remove ' + model.attributes.name + '?')) {
-						model.destroy();
-						setTimeout(function(){
-							$('#packageForm')[0].reset();
-						}, 500);
-					}
+					bootbox.confirm('Are you sure you want to remove ' + model.attributes.name + '?', function(res){
+						if(model && res) {
+							model.destroy();
+							setTimeout(function(){
+								$('#packageForm')[0].reset();
+							}, 500);
+						}
+					});
 				}
 			},
 			"click .edit": function(e) {
@@ -164,13 +166,15 @@
 	$('#genHooks').click(function(){
 		var val = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
 		if(val.length === 0) {
-			alert('Input a package name first');
+			bootbox.alert('Input a package name first');
 			$('#name').focus();
 		} else {
 			if(hooksEditor.getValue().length > 0) {
-				if(confirm('Are you sure you want to generate the hooks? It will override the existing one.')) {
-					updateHooksEditor(val);
-				}
+				bootbox.confirm('Are you sure you want to generate the hooks? It will override the existing one.', function(res){
+					if(res) {
+						updateHooksEditor(val);
+					}
+				});
 			} else {
 				updateHooksEditor(val);
 			}
@@ -180,13 +184,15 @@
 	$('#genRoutes').click(function(){
 		var val = $('#name').val().replace(/[^0-9A-Za-z]/g, '').toLowerCase();
 		if(val.length === 0) {
-			alert('Input a package name first');
+			bootbox.alert('Input a package name first');
 			$('#name').focus();
 		} else {
 			if(routesEditor.getValue().length > 0) {
-				if(confirm('Are you sure you want to generate the hooks? It will override the existing one.')) {
-					updateRoutesEditor(val);
-				}
+				bootbox.confirm('Are you sure you want to generate the hooks? It will override the existing one.', function(res){
+					if(res) {
+						updateRoutesEditor(val);
+					}
+				});
 			} else {
 				updateRoutesEditor(val);
 			}
@@ -199,10 +205,12 @@
 		for (var i = 0; i < 24; i++)
 			text += possible.charAt(Math.floor(Math.random() * possible.length));
 		if ($('#api').val() !== '' && editId) {
-			if (confirm('Are you sure you want to change the API Key?'))
-				return $('#api').val(text);
-			else
-				return;
+			bootbox.confirm('Are you sure you want to change the API Key?', function(res){
+				if(res) {
+					$('#api').val(text);
+				}
+			});
+			return;
 		}
 		return $('#api').val(text);
 	});

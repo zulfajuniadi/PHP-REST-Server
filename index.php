@@ -14,11 +14,15 @@ array_pop($ROOT_URI);
 $ROOT_URI = implode('/', $ROOT_URI);
 define('ROOT_URI', $ROOT_URI);
 
+/* define DS */
+
+define('DS', DIRECTORY_SEPARATOR);
+
 /* require external files */
 
-if(!file_exists('vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))
+if(!file_exists('vendor' . DS . 'autoload.php'))
 	die('Run composer update first. View https://github.com/zulfajuniadi/PHP-REST-Server for more info');
-require_once('vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
+require_once('vendor' . DS . 'autoload.php');
 
 if(!file_exists('config.php'))
 	die('config.php not found. Have you renamed the config.php.default to config.php?');
@@ -218,7 +222,7 @@ $app->post('/login', function() use ($app, $config) {
 
 $path = array_filter(explode('/', $app->request->getPath()));
 $path = array_shift($path);
-$routesFilePath = 'routes' . DIRECTORY_SEPARATOR . $path . '.php';
+$routesFilePath = 'routes' . DS . $path . '.php';
 
 if(file_exists($routesFilePath))
 	require_once($routesFilePath);
