@@ -45,7 +45,7 @@
 				</div>
 				<div class="form-group">
 					<label for="origin">Allowed Origin</label>
-					<input type="text" class="form-control mousetrap" id="origin" name="origin" required placeholder="http://localhost:8000">
+					<input type="text" class="form-control mousetrap" id="origin" name="origin" placeholder="http://localhost:8000">
 				</div>
 				<div class="form-group">
 					<label for="api">API Key <a class="fa fa-refresh" id="genApiKey"></a></label>
@@ -88,7 +88,8 @@
 				<div class="resources">
 					<ul class="nav nav-tabs">
 						<li class="active"><a href="#hooks-panel" data-toggle="tab">Hooks</a></li>
-						<li><a href="#routes-panel" data-toggle="tab">Routes</a></li>
+            <li><a href="#routes-panel" data-toggle="tab">Routes</a></li>
+						<!-- <li><a href="#resources-panel" data-toggle="tab">Resources</a></li> -->
 					</ul>
 					<div class="tab-content">
 						<div class="tab-pane active" id="hooks-panel">
@@ -96,10 +97,14 @@
 							<br>
 							<button type="button" id="genHooks" class="btn btn-primary">Generate Hooks</button>
 						</div>
-						<div class="tab-pane" id="routes-panel">
-							<div id="routes" title="Routes"></div>
+            <div class="tab-pane" id="routes-panel">
+              <div id="routes" title="Routes"></div>
+              <br>
+              <button type="button" id="genRoutes" class="btn btn-primary">Generate Routes</button>
+            </div>
+						<div class="tab-pane" id="resources-panel">
+							<div id="resources" title="Routes"></div>
 							<br>
-							<button type="button" id="genRoutes" class="btn btn-primary">Generate Routes</button>
 						</div>
 					</div>
 				</div>
@@ -154,9 +159,18 @@
 				<button class="btn btn-primary edit" data-id="{{id}}">
 				<i class="fa fa-edit"></i>
 				</button>
-				<button class="btn btn-danger delete" data-id="{{id}}">
-				<i class="fa fa-trash-o"></i>
-				</button>
+        {{#trueFalse locked}}
+          <button class="btn btn-success unlock" data-id="{{id}}">
+          <i class="fa fa-lock"></i>
+          </button>
+        {{else}}
+          <button class="btn btn-danger lock" data-id="{{id}}">
+          <i class="fa fa-unlock"></i>
+          </button>
+        {{/trueFalse}}
+        <button class="btn btn-danger delete" data-id="{{id}}">
+        <i class="fa fa-trash-o"></i>
+        </button>
 			</td>
 		</tr>
 		{{else}}

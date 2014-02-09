@@ -30,6 +30,11 @@ class Util
 		$stateStr = ($state) ?  'and `' . $state . '` = "true"' : '';
 		$packages = R::find('managepackages', ' name = ? and enabled = "true" ' . $stateStr, array($this->cleanup($package)));
 		if(count($packages) > 0) {
+      foreach ($packages as $package) {
+        if($package->locked==='true') {
+          R::freeze(true);
+        }
+      }
 			return true;
 		}
 		return false;

@@ -20,7 +20,7 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 	if(isset($data['hook'])) {
 		try {
 			include_once('lint.php');
-			var_dump(\Lint\Lint::checkSourceCode($data['hook'], false));
+			\Lint\Lint::checkSourceCode($data['hook'], false);
 		} catch (Exception $e) {
 			$data['hook'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Hook Hidden.\n\n". str_replace('<?php', '', $data['hook']) . '*/';
 		}
@@ -28,7 +28,7 @@ $r->registerHook('manage', 'packages', 'beforeInsert', function($data) {
 	if(isset($data['routes'])) {
 		try {
 			include_once('lint.php');
-			var_dump(\Lint\Lint::checkSourceCode($data['routes'], false));
+			\Lint\Lint::checkSourceCode($data['routes'], false);
 		} catch (Exception $e) {
 			$data['routes'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Routes Hidden.\n\n". str_replace('<?php', '', $data['routes']) . '*/';
 		}
@@ -42,7 +42,7 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 	if(isset($newData['hook'])) {
 		try {
 			include_once('lint.php');
-			var_dump(\Lint\Lint::checkSourceCode($newData['hook'], false));
+			\Lint\Lint::checkSourceCode($newData['hook'], false);
 		} catch (Exception $e) {
 			$newData['hook'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Hook Hidden.\n\n". str_replace('<?php', '', $newData['hook']) . '*/';
 		}
@@ -50,7 +50,7 @@ $r->registerHook('manage', 'packages', 'beforeUpdate', function($newData, $curre
 	if(isset($newData['routes'])) {
 		try {
 			include_once('lint.php');
-			var_dump(\Lint\Lint::checkSourceCode($newData['routes'], false));
+			\Lint\Lint::checkSourceCode($newData['routes'], false);
 		} catch (Exception $e) {
 			$newData['routes'] = '<?php' . "\n\n" . '/*' ."\nBroken PHP. Routes Hidden.\n\n". str_replace('<?php', '', $newData['routes']) . '*/';
 		}

@@ -1,10 +1,11 @@
+"use strict";
 (function(w) {
 
 	Handlebars.registerHelper('trueFalse', function(val, options) {
 		if (val === 'true') {
-			return options.fn();
+			return options.fn(this);
 		}
-		return options.inverse();
+		return options.inverse(this);
 	});
 
 	Mousetrap.bind(['command+s', 'ctrl+s'], function(e) {
@@ -97,42 +98,66 @@
 					});
 				}
 			},
-			"click .edit": function(e) {
+      "click .edit": function(e) {
+        var id = $(e.currentTarget).data('id');
+        if (id) {
+          editId = id;
+          var model = this.collection.get(id);
+          $('#name').val(model.attributes.name);
+          hooksEditor.setValue(model.attributes.hook);
+          routesEditor.setValue(model.attributes.routes);
+          $('#api').val(model.attributes.api);
+          $('#origin').val(model.attributes.origin);
+          $('#rate').val(model.attributes.rate);
+          if (model.attributes.enabled === 'true') {
+            $("#enabled").prop("checked", true);
+          } else {
+            $("#enabled").prop("checked", false);
+          }
+          if (model.attributes.list === 'true') {
+            $("#list").prop("checked", true);
+          } else {
+            $("#list").prop("checked", false);
+          }
+          if (model.attributes.insert === 'true') {
+            $("#insert").prop("checked", true);
+          } else {
+            $("#insert").prop("checked", false);
+          }
+          if (model.attributes.update === 'true') {
+            $("#update").prop("checked", true);
+          } else {
+            $("#update").prop("checked", false);
+          }
+          if (model.attributes.remove === 'true') {
+            $("#remove").prop("checked", true);
+          } else {
+            $("#remove").prop("checked", false);
+          }
+        }
+      },
+      "click .lock": function(e) {
+        var id = $(e.currentTarget).data('id');
+        var self = this;
+        if (id) {
+          bootbox.confirm('Are you sure you want to disable package modification?', function(res){
+            if(res) {
+              var model = self.collection.get(id);
+              model.set({locked : 'true'}).save();
+            }
+          })
+        }
+      },
+			"click .unlock": function(e) {
 				var id = $(e.currentTarget).data('id');
+        var self = this;
 				if (id) {
-					editId = id;
-					var model = this.collection.get(id);
-					$('#name').val(model.attributes.name);
-					hooksEditor.setValue(model.attributes.hook);
-					routesEditor.setValue(model.attributes.routes);
-					$('#api').val(model.attributes.api);
-					$('#origin').val(model.attributes.origin);
-					$('#rate').val(model.attributes.rate);
-					if (model.attributes.enabled === 'true') {
-						$("#enabled").prop("checked", true);
-					} else {
-						$("#enabled").prop("checked", false);
-					}
-					if (model.attributes.list === 'true') {
-						$("#list").prop("checked", true);
-					} else {
-						$("#list").prop("checked", false);
-					}
-					if (model.attributes.insert === 'true') {
-						$("#insert").prop("checked", true);
-					} else {
-						$("#insert").prop("checked", false);
-					}
-					if (model.attributes.update === 'true') {
-						$("#update").prop("checked", true);
-					} else {
-						$("#update").prop("checked", false);
-					}
-					if (model.attributes.remove === 'true') {
-						$("#remove").prop("checked", true);
-					} else {
-						$("#remove").prop("checked", false);
-					}
+          bootbox.confirm('Are you sure you want to enable package modification?', function(res){
+            if(res) {
+              var model = self.collection.get(id);
+              model.set({locked : 'false'}).save();
+            }
+          })
 				}
 			}
 		},
@@ -246,6 +271,7 @@
 			remove: remove,
 			hook: hook,
 			routes: routes,
+      locked : true,
 			api: $('#api').val() || null,
 			rate: parseInt($('#rate').val(), 10) || 0,
 		};
